@@ -85,7 +85,7 @@ export default function RightSidebar() {
         ))}
       </div>
 
-      <button className="mt-6 w-full bg-blue-500 text-xl text-white py-3 rounded hover:bg-blue-600 transition">
+      <button className="mt-1 w-full bg-blue-500 text-xl text-white py-3 rounded hover:bg-blue-600 transition">
         <img src={upload} alt="Upload" className=" w-8 h-8 inline-block mr-2" />
         Upload Files
       </button>
