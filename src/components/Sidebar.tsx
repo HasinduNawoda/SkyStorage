@@ -6,7 +6,11 @@ import recycleBin from "../assets/icons/bin.png"
 import deepClean from "../assets/icons/brush.png"
 import settings from "../assets/icons/setting.png"
 
-export default function Sidebar() {
+type Props = {
+  onNavigate: (view: "dashboard" | "files" | "favorites") => void
+}
+
+export default function Sidebar({ onNavigate }: Props) {
   const [active, setActive] = useState("Dashboard")
 
   const menuItems = [
@@ -29,7 +33,11 @@ export default function Sidebar() {
           return (
             <button
               key={item.label}
-              onClick={() => setActive(item.label) }
+              onClick={() => {
+  setActive(item.label)
+  if (item.label === "Dashboard") onNavigate("dashboard")
+  if (item.label === "Favorites") onNavigate("favorites")
+}}
               className={`relative flex items-center gap-3 px-3 py-2 rounded transition
                 ${isActive ? "opacity-100 scale-110" : "opacity-50 hover:opacity-80"}
               `}
