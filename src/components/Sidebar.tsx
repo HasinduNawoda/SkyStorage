@@ -7,37 +7,43 @@ import deepClean from "../assets/icons/brush.png"
 import settings from "../assets/icons/setting.png"
 
 type Props = {
-  onNavigate: (view: "dashboard" | "files" | "favorites") => void
+  activeView: "dashboard" | "favorites" |"deletedFiles" |"folders"| "files"
+  onNavigate: (view: "dashboard" | "favorites"|"deletedFiles" |"folders" | "files") => void
 }
 
-export default function Sidebar({ onNavigate }: Props) {
-  const [active, setActive] = useState("Dashboard")
 
-  const menuItems = [
-    { label: "Dashboard", icon: dashboard },
-    { label: "Favorites", icon: favorites },
-    { label: "Shared", icon: shared },
-    { label: "Recycle Bin", icon: recycleBin },
-    { label: "Deep Clean", icon: deepClean },
-    { label: "Settings", icon: settings },
-  ]
+export default function Sidebar({ activeView, onNavigate }: Props) {
 
+ 
+const menuItems: {
+  label: string
+  view: "dashboard" | "favorites" | "files"|"deletedFiles"
+  icon: string
+}[] = [
+  { label: "Dashboard", view: "dashboard", icon: dashboard },
+  { label: "Favorites", view: "favorites", icon: favorites },
+    /*{ label: "Shared", icon: shared },*/
+    { label: "Recycle Bin", view:"deletedFiles", icon: recycleBin },
+    /*{ label: "Deep Clean", icon: deepClean },
+    { label: "Settings", icon: settings },*/
+]
   return (
     <div className="w-1/5 h-screen bg-white text-gray-800 p-4 flex flex-col shadow-lg">
       <h1 className="text-3xl font-bold mb-6 text-blue-700">SkyStorage</h1>
 
       <nav className="flex flex-col gap-3">
         {menuItems.map((item) => {
-          const isActive = active === item.label
+const isActive =
+  (item.label === "Dashboard" && activeView === "dashboard") ||
+  (item.label === "Favorites" && activeView === "favorites") ||
+  (item.label === "Recycle Bin" && activeView === "deletedFiles");
+
 
           return (
             <button
               key={item.label}
-              onClick={() => {
-  setActive(item.label)
-  if (item.label === "Dashboard") onNavigate("dashboard")
-  if (item.label === "Favorites") onNavigate("favorites")
-}}
+              onClick={() => onNavigate(item.view)}
+
               className={`relative flex items-center gap-3 px-3 py-2 rounded transition
                 ${isActive ? "opacity-100 scale-110" : "opacity-50 hover:opacity-80"}
               `}
