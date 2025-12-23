@@ -9,9 +9,11 @@ import FoldersPage from "./components/FoldersPage";
 import FilesPage from "./components/FilesPage";
 
 export default function App() {
-  const [view, setView] = useState<"dashboard" | "folders" | "files" | "favorites">("dashboard")
+
+const [view, setView] = useState<"dashboard" | "favorites"|"deletedFiles"| "folders" | "files">("dashboard")
 
   const [favorites, setFavorites] = useState<any[]>([])
+  const [deletedFiles, deleteFiles]=useState<any[]>([])
 
 const toggleFavorite = (file: any) => {
   setFavorites(prev =>
@@ -19,6 +21,15 @@ const toggleFavorite = (file: any) => {
       ? prev.filter(f => f.name !== file.name)
       : [...prev, file]
   )
+}
+
+const toggleDelete =(file :any)=>{
+  deleteFiles(prev =>
+    prev.some(f => f.name === file.name)
+    ?prev.filter(f => f.name !== file.name)
+    : [...prev,file]
+  )
+
 }
 
 
@@ -45,11 +56,20 @@ const toggleFavorite = (file: any) => {
 
   return (
     <div className="flex h-screen">
-<Sidebar onNavigate={(v) => setView(v)} />
+<Sidebar activeView={view} onNavigate={(v) => setView(v)} />
+
 
       <div className="flex-1 p-6 bg-[#FAFAFA]">
         <TopBar />
-        <FilesRow files={view === "favorites" ? favorites : files} />
+<FilesRow
+  files={
+    view === "favorites"
+      ? favorites
+      : view === "deletedFiles"
+      ? deletedFiles
+      : files
+  }
+/>
 
 
         {view === "dashboard" && (
@@ -79,16 +99,23 @@ const toggleFavorite = (file: any) => {
               <th className="px-4 py-2">Members</th>
             </tr>
           </thead>
-          <tbody>
-  {files.slice(0, 4).map((file, idx) => (
-    <FileTable
-      key={idx}
-      {...file}
-      isFavorite={favorites.some(f => f.name === file.name)}
-      onToggleFavorite={() => toggleFavorite(file)}
-    />
-            ))}
-          </tbody>
+{/* Dashboard files section */}
+<tbody>
+  {files
+    .filter(f => !deletedFiles.some(d => d.name === f.name)) // exclude deleted files
+    .slice(0, 4)
+    .map((file) => (
+      <FileTable
+        key={file.name} // use name as key
+        {...file}
+        isFavorite={favorites.some(f => f.name === file.name)}
+        onToggleFavorite={() => toggleFavorite(file)}
+        isDeleted={deletedFiles.some(f => f.name === file.name)}
+        onToggleDelete={() => toggleDelete(file)}
+      />
+    ))}
+</tbody>
+
 
         </table>
           </>
@@ -102,22 +129,41 @@ const toggleFavorite = (file: any) => {
 {view === "files" && (
   <FilesPage
     files={files}
-    onBack={() => setView("dashboard")}
+onBack={() => setView("dashboard")}
     onToggleFavorite={toggleFavorite}
     favorites={favorites}
+    onToggleDelete={toggleDelete}
+    deletedFiles={deletedFiles}
     title="Files"
+
   />
 )}
 
 {view === "favorites" && (
   <FilesPage
-    files={favorites}
+    files={favorites.filter(f => !deletedFiles.some(d => d.name === f.name))}
     onBack={() => setView("dashboard")}
     onToggleFavorite={toggleFavorite}
-    favorites={favorites}
-    title="Favourites"
+    favorites={favorites.filter(f => !deletedFiles.some(d => d.name === f.name))}
+    onToggleDelete={toggleDelete}
+    deletedFiles={deletedFiles}
+    title="Favorites"
   />
 )}
+
+{view === "deletedFiles" && (
+  <FilesPage
+    files={deletedFiles}
+    onBack={() => setView("dashboard")}
+    onToggleFavorite={toggleFavorite}
+    favorites={favorites.filter(f => !deletedFiles.some(d => d.name === f.name))}
+    onToggleDelete={toggleDelete}
+    deletedFiles={deletedFiles}
+    title="Deleted Files"
+  />
+)}
+
+
 
 
 

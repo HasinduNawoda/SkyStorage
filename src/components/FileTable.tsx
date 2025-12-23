@@ -9,8 +9,8 @@ import trash from "../assets/icons/bin.png"
 import more from "../assets/icons/moreicon.png"
 import star from "../assets/icons/star.png"
 import fav from "../assets/icons/fav.png"
-import { useState } from "react"
 import { getFileType } from "../utils/FileType"
+import deleted from "../assets/icons/deleted.png"
 
 
 type FileRowProps = {
@@ -20,6 +20,8 @@ type FileRowProps = {
   members?: string
   isFavorite: boolean
   onToggleFavorite: () => void
+  isDeleted?: boolean
+  onToggleDelete:()=>void
 }
 
 
@@ -40,6 +42,8 @@ export default function FilesTable({
   members,
   isFavorite,
   onToggleFavorite,
+  isDeleted,
+  onToggleDelete,
 }: FileRowProps) {
 
 const icon = getIconByType(getFileType(name))
@@ -60,8 +64,8 @@ const icon = getIconByType(getFileType(name))
 <button>
               <img src={download} className="w-4 h-4 opacity-70 hover:opacity-100" />
             </button>
-            <button>
-              <img src={trash} className="w-4 h-4 opacity-70 hover:opacity-100" />
+            <button onClick={onToggleDelete}>
+              <img src={isDeleted ? deleted : trash} className="w-4 h-4 opacity-70 hover:opacity-100" />
             </button>
             <button>
               <img src={share} className="w-4 h-4 opacity-70 hover:opacity-100" />
