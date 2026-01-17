@@ -7,11 +7,19 @@ import StorageSummary from "./components/StorageSummary";
 import FilesRow from "./components/FilesRow";
 import FoldersPage from "./components/FoldersPage";
 import FilesPage from "./components/FilesPage";
+import { formatDate } from "./utils/formatDate"; 
+
+/*type ShareInfo = {
+  people: { email: string; role: string }[]
+  message?: string
+  dateShared: string
+}*/
 
 export default function App() {
 
-const [view, setView] = useState<"dashboard" | "favorites"|"deletedFiles"| "folders" | "files">("dashboard")
-
+const [view, setView] = useState<"dashboard" | "shared"|"favorites"|"deletedFiles"| "folders" | "files">("dashboard")
+//const [sharedMap, setSharedMap] = useState<Record<string, ShareInfo>>({})
+const [sharedFiles, setSharedFiles] = useState<any[]>([])
   const [favorites, setFavorites] = useState<any[]>([])
   const [deletedFiles, deleteFiles]=useState<any[]>([])
 
@@ -31,6 +39,48 @@ const toggleDelete =(file :any)=>{
   )
 
 }
+
+const handleShare = (payload: any) => {
+  const originalFile = files.find(f => f.name === payload.name)
+  if (!originalFile) return
+
+  const sharedFile = {
+    ...originalFile,     // size + lastModified
+    ...payload,          // people, message, dateShared
+    dateShared: formatDate(payload.dateShared) // Format the ISO string
+  }
+
+  setSharedFiles(prev => {
+    const exists = prev.some(f => f.name === payload.name)
+
+  setSharedFiles(prev => {
+    const exists = prev.some(f => f.name === payload.name)
+    return exists
+      ? prev.map(f => f.name === payload.name ? sharedFile : f)
+      : [...prev, sharedFile]
+  })
+
+    return exists
+      ? prev.map(f => f.name === payload.name ? sharedFile : f)
+      : [...prev, sharedFile]
+  })
+  
+  // Also update the original file in favorites if it exists there
+  setFavorites(prev => 
+    prev.map(f => f.name === payload.name 
+      ? { ...f, ...payload }
+      : f
+    )
+  )
+}
+
+const getMergedFile = (file: any) => {
+  // Find if this file exists in sharedFiles
+  const sharedFile = sharedFiles.find(sf => sf.name === file.name);
+  // If found, merge the shared data with the original file
+  return sharedFile ? { ...file, ...sharedFile } : file;
+};
+
 
 
   const folders = [
@@ -64,10 +114,12 @@ const toggleDelete =(file :any)=>{
 <FilesRow
   files={
     view === "favorites"
-      ? favorites
+      ? favorites.map(f => getMergedFile(f))
       : view === "deletedFiles"
       ? deletedFiles
-      : files
+      : view === "shared"
+      ? sharedFiles
+      : files.map(f => getMergedFile(f)) // Use merged files for dashboard
   }
 />
 
@@ -96,24 +148,29 @@ const toggleDelete =(file :any)=>{
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Size</th>
               <th className="px-4 py-2">Last Modified</th>
-              <th className="px-4 py-2">Members</th>
+              <th className="px-4 py-2 text-center ">Members</th>
             </tr>
           </thead>
 {/* Dashboard files section */}
+
 <tbody>
   {files
-    .filter(f => !deletedFiles.some(d => d.name === f.name)) // exclude deleted files
+    .filter(f => !deletedFiles.some(d => d.name === f.name))
     .slice(0, 4)
-    .map((file) => (
-      <FileTable
-        key={file.name} // use name as key
-        {...file}
-        isFavorite={favorites.some(f => f.name === file.name)}
-        onToggleFavorite={() => toggleFavorite(file)}
-        isDeleted={deletedFiles.some(f => f.name === file.name)}
-        onToggleDelete={() => toggleDelete(file)}
-      />
-    ))}
+    .map((file) => {
+      const mergedFile = getMergedFile(file);
+      return (
+        <FileTable
+          key={mergedFile.name}
+          {...mergedFile} // Pass the merged file data
+          isFavorite={favorites.some(f => f.name === mergedFile.name)}
+          onToggleFavorite={() => toggleFavorite(mergedFile)}
+          isDeleted={deletedFiles.some(f => f.name === mergedFile.name)}
+          onToggleDelete={() => toggleDelete(mergedFile)}
+          onShare={handleShare}
+        />
+      );
+    })}
 </tbody>
 
 
@@ -128,26 +185,39 @@ const toggleDelete =(file :any)=>{
 
 {view === "files" && (
   <FilesPage
-    files={files}
-onBack={() => setView("dashboard")}
+    files={files.map(file => getMergedFile(file))} // Use merged files
+    onBack={() => setView("dashboard")}
     onToggleFavorite={toggleFavorite}
     favorites={favorites}
     onToggleDelete={toggleDelete}
     deletedFiles={deletedFiles}
     title="Files"
-
+    onShare={handleShare}
   />
 )}
 
 {view === "favorites" && (
   <FilesPage
-    files={favorites.filter(f => !deletedFiles.some(d => d.name === f.name))}
+    files={favorites.map(file => getMergedFile(file))} // Use merged favorites
     onBack={() => setView("dashboard")}
     onToggleFavorite={toggleFavorite}
-    favorites={favorites.filter(f => !deletedFiles.some(d => d.name === f.name))}
+    favorites={favorites}
     onToggleDelete={toggleDelete}
     deletedFiles={deletedFiles}
     title="Favorites"
+    onShare={handleShare}
+  />
+)}
+{view === "shared" && (
+  <FilesPage
+    files={sharedFiles.filter(f => !deletedFiles.some(d => d.name === f.name))}
+    onBack={() => setView("dashboard")}
+    onToggleFavorite={toggleFavorite}
+    favorites={favorites}
+    onToggleDelete={toggleDelete}
+    deletedFiles={deletedFiles}
+    onShare={handleShare}
+    title="Shared"
   />
 )}
 
@@ -162,6 +232,8 @@ onBack={() => setView("dashboard")}
     title="Deleted Files"
   />
 )}
+
+
 
 
 
