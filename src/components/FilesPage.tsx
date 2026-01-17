@@ -9,15 +9,23 @@ type Props = {
   favorites: any[]
   onToggleDelete: (file: any) => void
   deletedFiles: any[]
+   sharedFiles?: any[]
+  onShare?: (payload: any) => void
 }
 
-export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title }: Props) {
+export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title, onShare }: Props) {
   // Filter out deleted files from active files/favorites
   const activeFiles = files.filter(file => !deletedFiles.some(f => f.name === file.name));
   const activeFavorites = favorites.filter(file => !deletedFiles.some(f => f.name === file.name));
+  const isSharedView = title === "Shared"
 
   // Determine which list to render based on title
-  const listToRender = title === "Deleted Files" ? deletedFiles : (title === "Favorites" ? activeFavorites : activeFiles);
+const listToRender =
+  title === "Deleted Files" ? deletedFiles
+  : title === "Favorites" ? activeFavorites
+  : title === "Shared" ? files // <-- use files prop (App passes sharedFiles into `files`)
+  : activeFiles;
+
 
   return (
     <>
@@ -36,8 +44,12 @@ export default function FilesPage({ files, onBack, favorites, onToggleFavorite, 
           <tr>
             <th className="px-4 py-2">Name</th>
             <th className="px-4 py-2">Size</th>
-            <th className="px-4 py-2">Last Modified</th>
-            <th className="px-4 py-2">Members</th>
+            <th className="px-4 py-2">
+              {isSharedView ? "Shared Date" : "Last Modified"} {/* Changed here */}
+            </th>
+            <th className="px-4 py-2 text-center">Members</th>
+                {isSharedView && <th className="px-4 py-2">Message</th>}
+
           </tr>
         </thead>
         <tbody>
@@ -49,6 +61,8 @@ export default function FilesPage({ files, onBack, favorites, onToggleFavorite, 
               onToggleFavorite={() => onToggleFavorite(file)}
               isDeleted={deletedFiles.some(f => f.name === file.name)}
               onToggleDelete={() => onToggleDelete(file)}
+                  onShare={(payload: any) => onShare?.(payload)}
+                isShared={isSharedView}
             />
           ))}
         </tbody>
