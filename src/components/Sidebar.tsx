@@ -28,7 +28,7 @@ const menuItems: {
   { label: "Settings", icon: settings },*/
 ]
   return (
-    <div className="w-1/5 h-screen bg-white text-gray-800 p-4 flex flex-col shadow-lg">
+    <div className="w-1/5 h-full bg-white text-gray-800 p-4 flex flex-col shadow-lg">
       <h1 className="text-3xl font-bold mb-6 text-blue-700">SkyStorage</h1>
 
       <nav className="flex flex-col gap-3">

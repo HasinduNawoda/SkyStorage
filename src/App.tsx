@@ -241,9 +241,13 @@ const getMergedFile = (file: any) => {
 
       </div>
 
-      <div className="w-1/4 p-6 bg-white flex flex-col gap-6">
-        <StorageSummary />
       </div>
+
+      {view !== "settings" && (
+  <div className="w-1/4 p-6 bg-white flex flex-col gap-6">
+    <StorageSummary />
+  </div>
+)}
     </div>
   );
 }
