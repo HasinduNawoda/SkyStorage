@@ -7,6 +7,8 @@ import StorageSummary from "./components/StorageSummary";
 import FilesRow from "./components/FilesRow";
 import FoldersPage from "./components/FoldersPage";
 import FilesPage from "./components/FilesPage";
+import DeepClean from "./components/DeepClean";
+import Settings from "./components/SettingsPage/index";
 import { formatDate } from "./utils/formatDate"; 
 
 /*type ShareInfo = {
@@ -17,7 +19,7 @@ import { formatDate } from "./utils/formatDate";
 
 export default function App() {
 
-const [view, setView] = useState<"dashboard" | "shared"|"favorites"|"deletedFiles"| "folders" | "files">("dashboard")
+const [view, setView] = useState<"dashboard"|"deep_clean" | "settings"|"shared"|"favorites"|"deletedFiles"| "folders" | "files">("dashboard")
 //const [sharedMap, setSharedMap] = useState<Record<string, ShareInfo>>({})
 const [sharedFiles, setSharedFiles] = useState<any[]>([])
   const [favorites, setFavorites] = useState<any[]>([])
@@ -110,18 +112,20 @@ const getMergedFile = (file: any) => {
 
 
       <div className="flex-1 p-6 bg-[#FAFAFA]">
-        <TopBar />
-<FilesRow
-  files={
-    view === "favorites"
-      ? favorites.map(f => getMergedFile(f))
-      : view === "deletedFiles"
-      ? deletedFiles
-      : view === "shared"
-      ? sharedFiles
-      : files.map(f => getMergedFile(f)) // Use merged files for dashboard
-  }
-/>
+        {view !== "settings" && (<TopBar />)}
+{view !== "settings" && (
+  <FilesRow
+    files={
+      view === "favorites"
+        ? favorites.map(f => getMergedFile(f))
+        : view === "deletedFiles"
+        ? deletedFiles
+        : view === "shared"
+        ? sharedFiles
+        : files.map(f => getMergedFile(f))
+    }
+  />
+)}
 
 
         {view === "dashboard" && (
@@ -233,7 +237,15 @@ const getMergedFile = (file: any) => {
   />
 )}
 
+{view === "settings" && (
+  <Settings onBack={() => setView("dashboard")} />
+)} 
 
+{view === "deep_clean" && (
+  <DeepClean 
+  onBack={() => setView("dashboard")} 
+  />
+)}
 
 
 
@@ -241,9 +253,11 @@ const getMergedFile = (file: any) => {
 
       </div>
 
-      <div className="w-1/4 p-6 bg-white flex flex-col gap-6">
-        <StorageSummary />
-      </div>
+      {view !== "settings" && (
+  <div className="w-1/4 p-6 bg-white flex flex-col gap-6">
+    <StorageSummary />
+  </div>
+)}
     </div>
   );
 }

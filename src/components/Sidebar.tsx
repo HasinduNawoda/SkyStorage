@@ -7,8 +7,8 @@ import deepClean from "../assets/icons/brush.png"
 import settings from "../assets/icons/setting.png"
 
 type Props = {
-  activeView: "dashboard" | "favorites" |"deletedFiles"|"shared" |"folders"| "files"
-  onNavigate: (view: "dashboard" | "favorites"|"deletedFiles"|"shared" |"folders" | "files") => void
+  activeView: "dashboard" | "favorites" |"deletedFiles"|"shared" |"folders"| "files"|"settings"|"deep_clean"
+  onNavigate: (view: "dashboard" | "favorites"|"deletedFiles"|"shared" |"folders"|"settings"| "files"|"deep_clean") => void
 }
 
 
@@ -17,18 +17,18 @@ export default function Sidebar({ activeView, onNavigate }: Props) {
  
 const menuItems: {
   label: string
-  view: "dashboard"|"shared" | "favorites" | "files"|"deletedFiles"
+  view: "dashboard"|"shared" | "favorites" |"settings"|"files"|"deletedFiles"|"deep_clean"
   icon: string
 }[] = [
   { label: "Dashboard", view: "dashboard", icon: dashboard },
   { label: "Favorites", view: "favorites", icon: favorites },
   { label: "Shared", view: "shared", icon: shared },
   { label: "Recycle Bin", view: "deletedFiles", icon: recycleBin },
-  /*{ label: "Deep Clean", icon: deepClean },
-  { label: "Settings", icon: settings },*/
+  { label: "DeepClean", view: "deep_clean", icon: deepClean },
+  { label: "Settings", view:"settings", icon: settings },
 ]
   return (
-    <div className="w-1/5 h-screen bg-white text-gray-800 p-4 flex flex-col shadow-lg">
+    <div className="w-1/5 h-full bg-white text-gray-800 p-4 flex flex-col shadow-lg">
       <h1 className="text-3xl font-bold mb-6 text-blue-700">SkyStorage</h1>
 
       <nav className="flex flex-col gap-3">
@@ -37,7 +37,10 @@ const isActive =
   (item.label === "Dashboard" && activeView === "dashboard") ||
   (item.label === "Favorites" && activeView === "favorites") ||
   (item.label === "Recycle Bin" && activeView === "deletedFiles") ||  
-  (item.label === "Shared" && activeView === "shared");
+  (item.label === "Shared" && activeView === "shared")||
+  (item.label ==="DeepClean" && activeView ==="deep_clean")||
+  (item.label==="Settings" && activeView ==="settings")
+
 
 
           return (
