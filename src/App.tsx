@@ -107,11 +107,11 @@ const getMergedFile = (file: any) => {
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
 <Sidebar activeView={view} onNavigate={(v) => setView(v)} />
 
 
-      <div className="flex-1 p-6 bg-[#FAFAFA]">
+      <div className="flex-1 overflow-y-auto p-6 bg-[#FAFAFA]">
         {view !== "settings" && (<TopBar />)}
 {view !== "settings" && (
   <FilesRow
@@ -254,7 +254,7 @@ const getMergedFile = (file: any) => {
       </div>
 
       {view !== "settings" && (
-  <div className="w-1/4 p-6 bg-white flex flex-col gap-6">
+  <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto flex-shrink-0">
     <StorageSummary />
   </div>
 )}
