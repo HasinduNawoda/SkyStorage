@@ -36,7 +36,7 @@ const listToRender =
         >
           <img src={back} alt="Back" className="w-12 h-12" />
         </button>
-        <h2 className="text-3xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold">{title}</h2>
       </div>
 
       <table className="w-full text-left border-collapse">
