@@ -54,7 +54,7 @@ export default function FilesRow({ files }: Props) {
                         onClick={() => setActive(item.label)}
                         className={`flex-1 flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-200
               border border-gray-200 hover:bg-gray-300 hover:scale-110
-                                   ${opacityClass} ${isActive ? "scale-110" : ""} hover:opacity-100`}
+                                   ${opacityClass} ${isActive ? "border-blue-500 border-2":  "scale-110"} hover:opacity-100`}
                     >
                         <img src={item.icon} className="w-6 h-6" />
                         <span className="text-sm font-medium text-gray-700">
