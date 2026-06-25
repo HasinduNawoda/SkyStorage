@@ -2,6 +2,7 @@ import FileTable from "./FileTable";
 import back from "../assets/icons/back-button.png";
 
 type Props = {
+  onDownload?: (file: any) => void
   files: any[]
   onBack: () => void
   title: string
@@ -13,7 +14,7 @@ type Props = {
   onShare?: (payload: any) => void
 }
 
-export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title, onShare }: Props) {
+export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title, onShare,onDownload}: Props) {
   // Filter out deleted files from active files/favorites
   const activeFiles = files.filter(file => !deletedFiles.some(f => f.name === file.name));
   const activeFavorites = favorites.filter(file => !deletedFiles.some(f => f.name === file.name));
@@ -36,7 +37,7 @@ const listToRender =
         >
           <img src={back} alt="Back" className="w-12 h-12" />
         </button>
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-3xl font-bold">{title}</h2>
       </div>
 
       <table className="w-full text-left border-collapse">
