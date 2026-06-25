@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { computeStorageStats } from "./utils/storageStats";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import AddressBar from "./components/AddressBar";
@@ -678,6 +679,8 @@ export default function App() {
   const activeRootFiles = rootFiles.filter(
     (f) => !deletedFiles.some((d) => d.name === f.name)
   );
+  const { totalMB, categories } = computeStorageStats([...files, ...deletedFiles]);
+
 
   // Build the item list for SelectionOverlay (only used in dashboard main grid for now)
   const overlayItems = [
@@ -869,18 +872,18 @@ export default function App() {
         )}
 
         {view !== "settings" && (
-          <FilesRow
-            files={
-              view === "favorites"
-                ? favorites.map((f) => getMergedFile(f))
-                : view === "deletedFiles"
-                ? deletedFiles
-                : view === "shared"
-                ? sharedFiles
-                : files.map((f) => getMergedFile(f))
-            }
-          />
-        )}
+  <FilesRow
+    files={
+      view === "favorites"
+        ? favorites.map((f) => getMergedFile(f))
+        : view === "deletedFiles"
+        ? deletedFiles
+        : view === "shared"
+        ? sharedFiles
+        : [...files, ...deletedFiles].map((f) => getMergedFile(f))
+    }
+  />
+)}
 
         {/* Inside a folder */}
         {currentFolderId ? (
@@ -1149,10 +1152,15 @@ export default function App() {
       </div>
 
       {view !== "settings" && (
-        <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto flex-shrink-0">
-          <StorageSummary onUploadFile={handleFileUploadClick} />
-        </div>
-      )}
+  <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto flex-shrink-0">
+    <StorageSummary
+      onUploadFile={handleFileUploadClick}
+      totalUsedMB={totalMB}
+      categories={categories}
+      capMB={100}
+    />
+  </div>
+)}
 
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
       <input
