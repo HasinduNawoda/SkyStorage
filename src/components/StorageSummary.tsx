@@ -1,5 +1,6 @@
 import { AbsoluteCenter, ProgressCircle } from "@chakra-ui/react"
 import { Box, Circle, Float, VisuallyHidden } from "@chakra-ui/react"
+import { formatMB, type CategoryBreakdown } from "../utils/storageStats"
 import docIcon from "../assets/icons/doc.png"
 import photoIcon from "../assets/icons/image.png"
 import videoIcon from "../assets/icons/mp4.png"
@@ -11,15 +12,33 @@ import upload from "../assets/icons/upload.png"
 
 interface RightSidebarProps {
   onUploadFile: () => void;
+  totalUsedMB: number;
+  categories: CategoryBreakdown[];
+  capMB?: number;
 }
 
-export default function RightSidebar({ onUploadFile }: RightSidebarProps) {
+const ICON_BY_TYPE: Record<CategoryBreakdown["type"], string> = {
+  document: docIcon,
+  image: photoIcon,
+  video: videoIcon,
+  audio: musicIcon,
+  other: otherIcon,
+}
+
+export default function RightSidebar({
+  onUploadFile,
+  totalUsedMB,
+  categories,
+  capMB = 100,
+}: RightSidebarProps) {
+
+  const percentUsed = capMB > 0 ? Math.min(100, Math.round((totalUsedMB / capMB) * 100)) : 0;
 
   const Demo = () => {
     return (
       <div className="flex justify-center my-8">
         <div className="flex flex-col items-center scale-[2] gap-2">
-          <ProgressCircle.Root size="xl" value={75}>
+          <ProgressCircle.Root size="xl" value={percentUsed}>
             <ProgressCircle.Circle>
               <ProgressCircle.Track />
               <ProgressCircle.Range stroke="blue.500" />
@@ -31,20 +50,12 @@ export default function RightSidebar({ onUploadFile }: RightSidebarProps) {
           </ProgressCircle.Root>
 
           <div className="text-sm text-gray-600 scale-100">
-            75 / 100 GB used
+            {formatMB(totalUsedMB)} / {formatMB(capMB)} used
           </div>
         </div>
       </div>
     )
   }
-
-  const categories = [
-    { label: "Documents", size: "2.2 GB", icon: docIcon },
-    { label: "Photos", size: "13 GB", icon: photoIcon },
-    { label: "Videos", size: "42 GB", icon: videoIcon },
-    { label: "Musics", size: "1.8 GB", icon: musicIcon },
-    { label: "Other Files", size: "16 GB", icon: otherIcon },
-  ]
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -73,15 +84,15 @@ export default function RightSidebar({ onUploadFile }: RightSidebarProps) {
       <div className="bg-white p-4 rounded shadow flex flex-col gap-8">
         <Demo />
 
-        {categories.map((cat, idx) => (
-          <div key={idx} className="flex justify-between items-center">
+        {categories.map((cat) => (
+          <div key={cat.type} className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <img src={cat.icon} alt={cat.label} className="w-10 h-10" />
+              <img src={ICON_BY_TYPE[cat.type]} alt={cat.label} className="w-10 h-10" />
               <span></span>
               {cat.label}
             </div>
             <div className="text-black px-2 py-1 rounded">
-              {cat.size}
+              {formatMB(cat.sizeMB)}
             </div>
           </div>
         ))}
