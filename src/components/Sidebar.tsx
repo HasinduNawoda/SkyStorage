@@ -27,6 +27,27 @@ const menuItems: {
   { label: "DeepClean", view: "deep_clean", icon: deepClean },
   { label: "Settings", view:"settings", icon: settings },
 ]
+type Props = {
+  activeView: "dashboard" | "favorites" |"deletedFiles"|"shared" |"folders"| "files"|"settings"|"deep_clean"
+  onNavigate: (view: "dashboard" | "favorites"|"deletedFiles"|"shared" |"folders"|"settings"| "files"|"deep_clean") => void
+}
+
+
+export default function Sidebar({ activeView, onNavigate }: Props) {
+
+ 
+const menuItems: {
+  label: string
+  view: "dashboard"|"shared" | "favorites" |"settings"|"files"|"deletedFiles"|"deep_clean"
+  icon: string
+}[] = [
+  { label: "Dashboard", view: "dashboard", icon: dashboard },
+  { label: "Favorites", view: "favorites", icon: favorites },
+  { label: "Shared", view: "shared", icon: shared },
+  { label: "Recycle Bin", view: "deletedFiles", icon: recycleBin },
+  { label: "DeepClean", view: "deep_clean", icon: deepClean },
+  { label: "Settings", view:"settings", icon: settings },
+]
   return (
     <div className="w-1/5 h-full bg-white text-gray-800 p-4 flex flex-col shadow-lg">
       <button className="flex items-center gap-2 mb-6">
@@ -37,6 +58,15 @@ const menuItems: {
 
       <nav className="flex flex-col gap-3">
         {menuItems.map((item) => {
+const isActive =
+  (item.label === "Dashboard" && activeView === "dashboard") ||
+  (item.label === "Favorites" && activeView === "favorites") ||
+  (item.label === "Recycle Bin" && activeView === "deletedFiles") ||  
+  (item.label === "Shared" && activeView === "shared")||
+  (item.label ==="DeepClean" && activeView ==="deep_clean")||
+  (item.label==="Settings" && activeView ==="settings")
+
+
 const isActive =
   (item.label === "Dashboard" && activeView === "dashboard") ||
   (item.label === "Favorites" && activeView === "favorites") ||
