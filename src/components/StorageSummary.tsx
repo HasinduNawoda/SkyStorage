@@ -1,14 +1,13 @@
 import { AbsoluteCenter, ProgressCircle } from "@chakra-ui/react"
-import { Box, Circle, Float, VisuallyHidden } from "@chakra-ui/react"
 import { formatMB, type CategoryBreakdown } from "../utils/storageStats"
 import docIcon from "../assets/icons/doc.png"
 import photoIcon from "../assets/icons/image.png"
 import videoIcon from "../assets/icons/mp4.png"
 import musicIcon from "../assets/icons/mp3.png"
 import otherIcon from "../assets/icons/other.png"
-import bell from "../assets/icons/bell.png"
 import userIcon from "../assets/icons/user icon.png"
 import upload from "../assets/icons/upload.png"
+import NotificationBell from "./NotificationBell"
 
 interface RightSidebarProps {
   onUploadFile: () => void;
@@ -61,19 +60,7 @@ export default function RightSidebar({
     <div className="w-full flex flex-col gap-6">
       <div className="flex justify-between items-center mb-4">
         <span className="flex justify-between items-center mb-4">
-          <Box position="relative">
-            <img
-              src={bell}
-              alt="Notifications"
-              className="w-12 h-12 cursor-pointer"
-            />
-            <Float offset="2">
-              <Circle size="5" bg="red.500" color="white" fontSize="xs">
-                3
-              </Circle>
-            </Float>
-            <VisuallyHidden>3 notifications</VisuallyHidden>
-          </Box>
+          <NotificationBell />
         </span>
         <span className="text-3xl font-bold text-blue-500">Storage</span>
         <span className="text-2xl cursor-pointer">
