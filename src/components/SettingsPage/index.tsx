@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import back from "../../assets/icons/back-button.png";
 import Sidebar from "./components/Sidebar";
 import SearchBar from "./components/SearchBar";
@@ -14,7 +14,13 @@ import BackupSync from "./settings/BackupSettings";
 import SystemPerformance from "./settings/SystemSettings";
 import ResetSettings from "./settings/ResetSettings";
 
-type Props = { onBack: () => void };
+type ExternalTarget = { page: string; section: string; label: string } | null;
+
+type Props = {
+  onBack: () => void;
+  externalTarget?: ExternalTarget;
+  onConsumeExternalTarget?: () => void;
+};
 
 const menuItems = [
   "Account",
@@ -38,7 +44,7 @@ const settingsComponents: Record<string, React.ReactNode> = {
   "Reset Settings":     <ResetSettings />,
 };
 
-export default function SettingsPage({ onBack }: Props) {
+export default function SettingsPage({ onBack, externalTarget, onConsumeExternalTarget }: Props) {
   const [active, setActive] = useState("Account");
 
   /**
@@ -72,6 +78,19 @@ export default function SettingsPage({ onBack }: Props) {
       });
     });
   };
+
+  // Allows callers outside the settings tree (e.g. the user menu in the
+  // right sidebar) to deep-link straight to a specific page + section,
+  // reusing the exact same scroll-and-highlight behavior as search.
+  useEffect(() => {
+    if (!externalTarget) return;
+    handleNavigate(externalTarget.page, {
+      section: externalTarget.section,
+      label: externalTarget.label,
+    });
+    onConsumeExternalTarget?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalTarget]);
 
   return (
     <div className="h-screen flex bg-gray-50 text-gray-900 overflow-hidden">

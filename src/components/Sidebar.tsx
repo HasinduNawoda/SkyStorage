@@ -5,14 +5,16 @@ import shared from "../assets/icons/share.png"
 import recycleBin from "../assets/icons/bin.png"
 import deepClean from "../assets/icons/brush.png"
 import settings from "../assets/icons/setting.png"
+import logout from "../assets/icons/logout.png"
 
 type Props = {
   activeView: "dashboard" | "favorites" |"deletedFiles"|"shared" |"folders"| "files"|"settings"|"deep_clean"
   onNavigate: (view: "dashboard" | "favorites"|"deletedFiles"|"shared" |"folders"|"settings"| "files"|"deep_clean") => void
+  onSignOut?: () => void
 }
 
 
-export default function Sidebar({ activeView, onNavigate }: Props) {
+export default function Sidebar({ activeView, onNavigate, onSignOut }: Props) {
 
  
 const menuItems: {
@@ -70,6 +72,14 @@ const isActive =
           )
         })}
       </nav>
+
+      <button
+        onClick={onSignOut}
+        className="mt-auto flex items-center gap-3 px-3 py-2 rounded transition opacity-50 hover:opacity-100 hover:bg-red-50 text-red-500"
+      >
+        <img src={logout} alt="Sign Out" className="w-8 h-8" />
+        <span className="font-medium">Sign Out</span>
+      </button>
     </div>
   )
 }

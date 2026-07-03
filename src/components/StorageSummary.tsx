@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react"
 import { AbsoluteCenter, ProgressCircle } from "@chakra-ui/react"
 import { formatMB, type CategoryBreakdown } from "../utils/storageStats"
 import docIcon from "../assets/icons/doc.png"
@@ -14,6 +15,8 @@ interface RightSidebarProps {
   totalUsedMB: number;
   categories: CategoryBreakdown[];
   capMB?: number;
+  onNavigateSettings?: (page: string, section?: string, label?: string) => void;
+  onSignOut?: () => void;
 }
 
 const ICON_BY_TYPE: Record<CategoryBreakdown["type"], string> = {
@@ -24,14 +27,71 @@ const ICON_BY_TYPE: Record<CategoryBreakdown["type"], string> = {
   other: otherIcon,
 }
 
+const USER_MENU_ITEMS = [
+  { key: "account", label: "Account Settings" },
+  { key: "activity", label: "Activity Log" },
+  { key: "devices", label: "Devices" },
+  { key: "feedback", label: "Feedback" },
+] as const;
+
 export default function RightSidebar({
   onUploadFile,
   totalUsedMB,
   categories,
   capMB = 100,
+  onNavigateSettings,
+  onSignOut,
 }: RightSidebarProps) {
 
   const percentUsed = capMB > 0 ? Math.min(100, Math.round((totalUsedMB / capMB) * 100)) : 0;
+
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setUserMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [userMenuOpen]);
+
+  const handleMenuItemClick = (key: (typeof USER_MENU_ITEMS)[number]["key"]) => {
+    setUserMenuOpen(false);
+    switch (key) {
+      case "account":
+        // No section/label needed — Account is already the default page.
+        onNavigateSettings?.("Account");
+        break;
+      case "activity":
+        onNavigateSettings?.("Privacy & Security", "Activity Log", "Activity Log");
+        break;
+      case "devices":
+        // "Devices" surfaces via the Login Alerts section (new-device sign-in notifications).
+        onNavigateSettings?.("Privacy & Security", "Login Alerts", "Login Alerts");
+        break;
+      case "feedback":
+        // Placeholder — no feedback page exists yet.
+        break;
+    }
+  };
+
+  const handleSignOut = () => {
+    setUserMenuOpen(false);
+    onSignOut?.();
+  };
 
   const Demo = () => {
     return (
@@ -63,9 +123,42 @@ export default function RightSidebar({
           <NotificationBell />
         </span>
         <span className="text-3xl font-bold text-blue-500">Storage</span>
-        <span className="text-2xl cursor-pointer">
-          <img src={userIcon} alt="user icon" className="w-12 h-12" />
-        </span>
+        <div className="relative" ref={userMenuRef}>
+          <button
+            onClick={() => setUserMenuOpen((open) => !open)}
+            className="text-2xl cursor-pointer rounded-full transition-shadow hover:ring-2 hover:ring-blue-100"
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
+          >
+            <img src={userIcon} alt="user icon" className="w-12 h-12" />
+          </button>
+
+          {userMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-20"
+            >
+              {USER_MENU_ITEMS.map((item) => (
+                <button
+                  key={item.key}
+                  role="menuitem"
+                  onClick={() => handleMenuItemClick(item.key)}
+                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                >
+                  {item.label}
+                </button>
+              ))}
+              <div className="border-t border-gray-100" />
+              <button
+                role="menuitem"
+                onClick={handleSignOut}
+                className="w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded shadow flex flex-col gap-8">
