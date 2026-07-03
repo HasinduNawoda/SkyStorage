@@ -37,6 +37,16 @@ export default function App() {
     "dashboard" | "deep_clean" | "settings" | "shared" | "favorites" | "deletedFiles" | "folders" | "files"
   >("dashboard");
 
+  const [settingsTarget, setSettingsTarget] = useState<
+    { page: string; section: string; label: string } | null
+  >(null);
+
+  /** Navigate into Settings, optionally deep-linking to a specific page/section (used by the user menu). */
+  const openSettings = (page: string, section = "", label = "") => {
+    setSettingsTarget({ page, section, label });
+    setView("settings");
+  };
+
   const [sharedFiles, setSharedFiles] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [deletedFiles, deleteFiles] = useState<any[]>([]);
@@ -1145,7 +1155,13 @@ export default function App() {
               />
             )}
 
-            {view === "settings" && <Settings onBack={() => setView("dashboard")} />}
+            {view === "settings" && (
+              <Settings
+                onBack={() => setView("dashboard")}
+                externalTarget={settingsTarget}
+                onConsumeExternalTarget={() => setSettingsTarget(null)}
+              />
+            )}
             {view === "deep_clean" && <DeepClean onBack={() => setView("dashboard")} />}
           </>
         )}
@@ -1158,6 +1174,11 @@ export default function App() {
       totalUsedMB={totalMB}
       categories={categories}
       capMB={100}
+      onNavigateSettings={openSettings}
+      onSignOut={() => {
+        // TODO: wire up real sign-out flow once auth is implemented
+        console.log("Sign out clicked");
+      }}
     />
   </div>
 )}
