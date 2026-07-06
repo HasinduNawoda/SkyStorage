@@ -18,7 +18,9 @@ import ShareModal from "./components/ShareModal";
 import ContextMenu from "./components/ContextMenu";
 import BulkMenu from "./components/BulkMenu";
 import SelectionOverlay from "./components/SelectionOverlay";
+import AuthPage, { type LoginPayload, type SignUpPayload } from "./components/Auth/AuthPage";
 import { formatDate } from "./utils/formatDate";
+import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout } from "./utils/localAuth";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
 
@@ -33,6 +35,24 @@ type ClipboardState = {
 } | null;
 
 export default function App() {
+  // ----- Auth -----
+  // No backend yet, so this is backed by src/utils/localAuth.ts (localStorage)
+  // rather than a real API — see that file's header comment. It's a real,
+  // working sign up / sign in / sign out flow, just not one a server can see.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getSession());
+
+  /** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
+  const handleLogin = async (payload: LoginPayload) => {
+    await localLogin(payload.email, payload.password);
+    setIsAuthenticated(true);
+  };
+
+  /** TODO(backend): swap for a real POST /auth/signup call once the backend exists. */
+  const handleSignUp = async (payload: SignUpPayload) => {
+    await localSignUp(payload.name, payload.email, payload.password);
+    setIsAuthenticated(true);
+  };
+
   const [view, setView] = useState<
     "dashboard" | "deep_clean" | "settings" | "shared" | "favorites" | "deletedFiles" | "folders" | "files"
   >("dashboard");
@@ -823,9 +843,21 @@ export default function App() {
   // Render
   // ---------------------------------------------------------------------------
 
+  if (!isAuthenticated) {
+    return <AuthPage onLogin={handleLogin} onSignUp={handleSignUp} />;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar activeView={view} onNavigate={handleNavigate} />
+      <Sidebar
+        activeView={view}
+        onNavigate={handleNavigate}
+        onSignOut={() => {
+          // TODO(backend): also invalidate the session/token server-side once auth exists
+          localLogout();
+          setIsAuthenticated(false);
+        }}
+      />
 
       <div
         ref={midSectionRef as React.RefObject<HTMLDivElement>}
@@ -1176,8 +1208,9 @@ export default function App() {
       capMB={100}
       onNavigateSettings={openSettings}
       onSignOut={() => {
-        // TODO: wire up real sign-out flow once auth is implemented
-        console.log("Sign out clicked");
+        // TODO(backend): also invalidate the session/token server-side once auth exists
+        localLogout();
+        setIsAuthenticated(false);
       }}
     />
   </div>

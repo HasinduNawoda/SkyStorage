@@ -1,0 +1,311 @@
+/*
+ * Auth page styles — flip-card sign-in/sign-up.
+ *
+ * Same animation as the original template, recolored to match the rest
+ * of the dashboard: white cards, the sidebar's blue-700 brand color, and
+ * the dark slate used for the file-table header — instead of the
+ * template's gold accent.
+ *
+ * Written as a CSS Module and scoped under `.cont` so it can never leak
+ * out and restyle every <button>/<input>/<h2>/<label> elsewhere in the app.
+ */
+
+.page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+
+.cont {
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  width: 900px;
+  max-width: 100%;
+  height: 550px;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow:
+    -10px -10px 15px rgba(255, 255, 255, 0.6),
+    10px 10px 25px rgba(30, 41, 59, 0.12),
+    inset -10px -10px 15px rgba(255, 255, 255, 0.4),
+    inset 10px 10px 15px rgba(30, 41, 59, 0.04);
+}
+
+.form {
+  position: relative;
+  width: 640px;
+  height: 100%;
+  transition: transform 1.2s ease-in-out;
+  padding: 50px 30px 0;
+}
+
+.sub-cont {
+  overflow: hidden;
+  position: absolute;
+  left: 640px;
+  top: 0;
+  width: 900px;
+  height: 100%;
+  padding-left: 260px;
+  background: #fff;
+  transition: transform 1.2s ease-in-out;
+}
+
+.cont.s--signup .sub-cont {
+  transform: translate3d(-640px, 0, 0);
+}
+
+/* ----- element resets, scoped to this component only ----- */
+
+.cont h1 {
+  width: 100%;
+  font-size: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin-bottom: 4px;
+}
+
+.cont h2 {
+  width: 100%;
+  font-size: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.cont label {
+  display: block;
+  width: 260px;
+  margin: 22px auto 0;
+  text-align: center;
+}
+
+.cont label span {
+  font-size: 12px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cont input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding-bottom: 5px;
+  font-size: 16px;
+  border: none;
+  outline: none;
+  background: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  text-align: center;
+  font-family: inherit;
+  color: #1f2937;
+  transition: border-color 0.2s;
+}
+
+.cont input:focus {
+  border-bottom-color: #2563eb;
+}
+
+.cont button {
+  display: block;
+  margin: 0 auto;
+  width: 260px;
+  height: 40px;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cont button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  width: 260px;
+  margin: 14px auto 0;
+  text-align: center;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.forgot-pass {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.forgot-pass:hover {
+  color: #2563eb;
+}
+
+.submit {
+  position: absolute;   /* new — .form is already position: relative */
+  top: 360px;           /* same offset as .img's padding-top */
+  left: 0;
+  right: 0;
+  margin: 0 auto;        /* keeps it horizontally centered at width: 260px */
+  background: #2563eb;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: background 0.2s;
+}
+
+.submit:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sign-in {
+  transition-timing-function: ease-out;
+}
+
+.cont.s--signup .sign-in {
+  transition-timing-function: ease-in-out;
+  transition-duration: 1.2s;
+  transform: translate3d(640px, 0, 0);
+}
+
+.sign-up {
+  transform: translate3d(-900px, 0, 0);
+}
+
+.cont.s--signup .sign-up {
+  transform: translate3d(0, 0, 0);
+}
+
+/* ----- decorative side panel ----- */
+
+.img {
+  overflow: hidden;
+  z-index: 2;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 100%;
+  padding-top: 360px;
+}
+
+.img:before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 900px;
+  height: 100%;
+  /* Solid brand blue — swap for a background-image the same way the
+     original template used a photo, if one becomes available. */
+  background-color:rgba(0, 64, 255, 0.203);;
+  background-size: cover;
+  transition: transform 1.2s ease-in-out;
+}
+
+.cont.s--signup .img:before {
+  transform: translate3d(640px, 0, 0);
+}
+
+.img__text {
+  z-index: 2;
+  position: absolute;
+  left: 0;
+  top: 50px;
+  width: 100%;
+  padding: 0 20px;
+  text-align: center;
+  color: #000000;
+  transition: transform 1.2s ease-in-out;
+}
+
+.img__text h3 {
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.5;
+  color: #2563eb;
+}
+
+.cont.s--signup .img__text.m--up {
+  transform: translateX(520px);
+}
+
+.img__text.m--in {
+  transform: translateX(-520px);
+}
+
+.cont.s--signup .img__text.m--in {
+  transform: translateX(0);
+}
+
+.authImage {
+  width: 350px; /* increase from 220px */
+  height: auto;
+  display: block;
+  margin: 20px auto 0;
+  object-fit: contain;
+}
+
+.img__btn {
+  overflow: hidden;
+  z-index: 2;
+  position: relative;
+  width: 70px;
+  height: 36px;
+  margin: 0 auto;
+  background: transparent;
+  color: #000000;
+  text-transform: uppercase;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.img__btn:after {
+  content: "";
+  z-index: 1;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #ffffff00;
+  border-radius: 30px;
+  background-color: #2563eb;
+}
+
+.img__btn span {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  transition: transform 1.2s;
+}
+
+.img__btn span.m--in {
+  transform: translateY(-72px);
+}
+
+.cont.s--signup .img__btn span.m--in {
+  transform: translateY(0);
+}
+
+.cont.s--signup .img__btn span.m--up {
+  transform: translateY(72px);
+}
