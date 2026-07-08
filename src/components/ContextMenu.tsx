@@ -16,6 +16,8 @@ type ContextMenuProps = {
   onCreateNewFolder: () => void
   isSelectModeActive: boolean
   canPaste: boolean
+  /** Whether the current view has any files or folders that could be selected. */
+  hasSelectableItems: boolean
 }
 
 export default function ContextMenu({
@@ -30,6 +32,7 @@ export default function ContextMenu({
   onCreateNewFolder,
   isSelectModeActive,
   canPaste,
+  hasSelectableItems,
 }: ContextMenuProps) {
   const clipboardItems = [
     { label: "Cut", value: "cut", icon: cut, onClick: undefined, disabled: true },
@@ -93,9 +96,14 @@ export default function ContextMenu({
 
             {/* Only show "Select items" when not already in select mode.
                 Exiting select mode is handled by the dedicated banner button,
-                not buried in this menu anymore. */}
+                not buried in this menu anymore. Disabled when the current
+                view has no files or folders to select. */}
             {!isSelectModeActive && (
-              <Menu.Item value="select-items" onClick={onSelectItems}>
+              <Menu.Item
+                value="select-items"
+                onClick={onSelectItems}
+                disabled={!hasSelectableItems}
+              >
                 Select items
               </Menu.Item>
             )}

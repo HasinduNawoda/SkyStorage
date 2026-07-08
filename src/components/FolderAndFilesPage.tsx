@@ -25,6 +25,18 @@ type Props = {
   files: FileItem[];
   onBack: () => void;
 
+  editingFolderId?: string | null;
+  onRenameFolder?: (id: string, newName: string) => void;
+  onCancelFolderEdit?: (id: string) => void;
+  onRequestRenameFolder?: (id: string) => void;
+
+  editingFileName?: string | null;
+  onRenameFile?: (oldName: string, newName: string) => void;
+  onCancelFileEdit?: () => void;
+  onRequestRenameFile?: (name: string) => void;
+  onCutFile?: (file: any) => void;
+  onCopyFile?: (file: any) => void;
+
   favorites: any[];
   onToggleFavorite: (item: any) => void;
   favoriteFolderIds?: string[];
@@ -63,6 +75,16 @@ export default function FolderAndFilesPage({
   folders,
   files,
   onBack,
+  editingFolderId = null,
+  onRenameFolder,
+  onCancelFolderEdit,
+  onRequestRenameFolder,
+  editingFileName = null,
+  onRenameFile,
+  onCancelFileEdit,
+  onRequestRenameFile,
+  onCutFile,
+  onCopyFile,
   favorites,
   onToggleFavorite,
   favoriteFolderIds = [],
@@ -109,6 +131,10 @@ export default function FolderAndFilesPage({
                 name={f.name}
                 files={f.files}
                 size={f.size}
+                isEditing={editingFolderId === f.id}
+                onRename={onRenameFolder}
+                onCancelEdit={onCancelFolderEdit}
+                onRequestRename={() => onRequestRenameFolder?.(f.id)}
                 onOpen={() => onOpenFolder?.(f)}
                 isFavorite={favoriteFolderIds.includes(f.id)}
                 isDeleted={deletedFolderIds.includes(f.id)}
@@ -157,6 +183,12 @@ export default function FolderAndFilesPage({
                   onShare={onShare}
                   onDownload={() => onDownloadFile?.(file)}
                   isShared={isShared}
+                  isEditing={editingFileName === file.name}
+                  onRename={(newName) => onRenameFile?.(file.name, newName)}
+                  onCancelEdit={onCancelFileEdit}
+                  onRequestRename={() => onRequestRenameFile?.(file.name)}
+                  onCut={() => onCutFile?.(file)}
+                  onCopy={() => onCopyFile?.(file)}
                   selectMode={selectMode}
                   isSelected={selectedFileIds.includes(file.id ?? file.name)}
                   onToggleSelect={() => onToggleSelectFile?.(file.id ?? file.name)}

@@ -12,9 +12,15 @@ type Props = {
   deletedFiles: any[]
    sharedFiles?: any[]
   onShare?: (payload: any) => void
+  editingFileName?: string | null
+  onRenameFile?: (oldName: string, newName: string) => void
+  onCancelFileEdit?: () => void
+  onRequestRenameFile?: (name: string) => void
+  onCutFile?: (file: any) => void
+  onCopyFile?: (file: any) => void
 }
 
-export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title, onShare,onDownload}: Props) {
+export default function FilesPage({ files, onBack, favorites, onToggleFavorite, deletedFiles, onToggleDelete, title, onShare, onDownload, editingFileName, onRenameFile, onCancelFileEdit, onRequestRenameFile, onCutFile, onCopyFile }: Props) {
   // Filter out deleted files from active files/favorites
   const activeFiles = files.filter(file => !deletedFiles.some(f => f.name === file.name));
   const activeFavorites = favorites.filter(file => !deletedFiles.some(f => f.name === file.name));
@@ -64,6 +70,12 @@ const listToRender =
               onToggleDelete={() => onToggleDelete(file)}
                   onShare={(payload: any) => onShare?.(payload)}
                 isShared={isSharedView}
+                isEditing={editingFileName === file.name}
+                onRename={(newName) => onRenameFile?.(file.name, newName)}
+                onCancelEdit={onCancelFileEdit}
+                onRequestRename={() => onRequestRenameFile?.(file.name)}
+                onCut={() => onCutFile?.(file)}
+                onCopy={() => onCopyFile?.(file)}
             />
           ))}
         </tbody>

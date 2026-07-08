@@ -17,6 +17,7 @@ type FolderMenuProps = {
   onShare: () => void
   onToggleFavorite: () => void
   onProperties: () => void
+  onRename?: () => void
   onCut?: () => void
   onCopy?: () => void
   onPaste?: () => void
@@ -39,6 +40,7 @@ function FolderMenuContent({
   onShare,
   onToggleFavorite,
   onProperties,
+  onRename,
   onCut,
   onCopy,
   onPaste,
@@ -82,6 +84,13 @@ function FolderMenuContent({
         </>
       )}
 
+      {onRename && !isDeleted && (
+        <Menu.Item value="rename" onClick={onRename} gap="2">
+          <span className="w-4 h-4 shrink-0" />
+          <span>Rename</span>
+        </Menu.Item>
+      )}
+
       <Menu.Item value="download" onClick={onDownload} gap="2">
         <img src={download} className="w-4 h-4 opacity-70" />
         <span>Download</span>
@@ -106,7 +115,8 @@ function FolderMenuContent({
         </Menu.Item>
       )}
 
-      <Menu.Item value="properties" onClick={onProperties}>
+      <Menu.Item value="properties" onClick={onProperties} gap="2">
+        <span className="w-4 h-4 shrink-0" />
         <span>Properties</span>
       </Menu.Item>
     </Menu.Content>
