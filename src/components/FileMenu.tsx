@@ -1,4 +1,6 @@
-import { Menu, Portal } from "@chakra-ui/react"
+import { Group, Menu, Portal } from "@chakra-ui/react"
+import cut from "../assets/icons/cut.png"
+import copy from "../assets/icons/copy.png"
 import download from "../assets/icons/downloadicon.png"
 import trash from "../assets/icons/bin.png"
 import deleted from "../assets/icons/deleted.png"
@@ -13,6 +15,9 @@ type FileMenuProps = {
   onDelete: () => void
   onShare: () => void
   onToggleFavorite: () => void
+  onRename?: () => void
+  onCut?: () => void
+  onCopy?: () => void
 
   // Click-trigger mode: wrap the trigger element as children.
   children?: React.ReactNode
@@ -29,9 +34,46 @@ function FileMenuContent({
   onDelete,
   onShare,
   onToggleFavorite,
+  onRename,
+  onCut,
+  onCopy,
 }: Omit<FileMenuProps, "children" | "openAt" | "onClosePositioned">) {
+  const clipboardItems = [
+    { label: "Cut", value: "cut", icon: cut, onClick: onCut },
+    { label: "Copy", value: "copy", icon: copy, onClick: onCopy },
+  ]
+
   return (
     <Menu.Content minW="44">
+      {!isDeleted && (
+        <>
+          <Group grow gap="0">
+            {clipboardItems.map((item) => (
+              <Menu.Item
+                key={item.value}
+                value={item.value}
+                onClick={item.onClick}
+                width="14"
+                gap="1"
+                flexDirection="column"
+                justifyContent="center"
+              >
+                <img src={item.icon} className="w-4 h-4 opacity-80" />
+                <span className="text-xs">{item.label}</span>
+              </Menu.Item>
+            ))}
+          </Group>
+          <Menu.Separator />
+        </>
+      )}
+
+      {onRename && !isDeleted && (
+        <Menu.Item value="rename" onClick={onRename} gap="2">
+          <span className="w-4 h-4 shrink-0" />
+          <span>Rename</span>
+        </Menu.Item>
+      )}
+
       <Menu.Item value="download" onClick={onDownload} gap="2">
         <img src={download} className="w-4 h-4 opacity-70" />
         <span>Download</span>

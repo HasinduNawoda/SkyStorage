@@ -7,7 +7,12 @@ type Props = {
   editingFolderId: string | null;
   onRename: (id: string, newName: string) => void;
   onCancelEdit: (id: string) => void;
+  onRequestRename: (id: string) => void;
   onOpenFolder: (folder: any) => void;
+  onCutFolder?: (folder: any) => void;
+  onCopyFolder?: (folder: any) => void;
+  onPasteIntoFolder?: (folderId: string) => void;
+  isPasteValidForFolder?: (folderId: string) => boolean;
 };
 
 export default function FoldersPage({
@@ -16,7 +21,12 @@ export default function FoldersPage({
   editingFolderId,
   onRename,
   onCancelEdit,
+  onRequestRename,
   onOpenFolder,
+  onCutFolder,
+  onCopyFolder,
+  onPasteIntoFolder,
+  isPasteValidForFolder,
 }: Props) {
   return (
     <>
@@ -38,7 +48,12 @@ export default function FoldersPage({
             isEditing={editingFolderId === f.id}
             onRename={onRename}
             onCancelEdit={onCancelEdit}
+            onRequestRename={() => onRequestRename(f.id)}
             onOpen={() => onOpenFolder(f)}
+            onCut={() => onCutFolder?.(f)}
+            onCopy={() => onCopyFolder?.(f)}
+            onPaste={() => onPasteIntoFolder?.(f.id)}
+            canPaste={isPasteValidForFolder ? isPasteValidForFolder(f.id) : false}
           />
         ))}
       </div>

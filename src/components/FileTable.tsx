@@ -11,7 +11,7 @@ import star from "../assets/icons/star.png"
 import fav from "../assets/icons/fav.png"
 import { getFileType } from "../utils/FileType"
 import deleted from "../assets/icons/deleted.png"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import ShareModal from "./ShareModal"
 import MembersAvatars from "./MembersAvatars"
 import FileMenu from "./FileMenu"
@@ -41,6 +41,17 @@ type FileTable = {
   blob?: Blob
   /** Called when the user wants to download this file (hover icon or menu item). */
   onDownload?: () => void
+
+  // Rename
+  isEditing?: boolean
+  /** Commit a rename with the new name typed in the inline input. */
+  onRename?: (newName: string) => void
+  /** Cancel out of edit mode without changing the name. */
+  onCancelEdit?: () => void
+  /** Called when the user picks "Rename" from the ••• / right-click menu to enter edit mode. */
+  onRequestRename?: () => void
+  onCut?: () => void
+  onCopy?: () => void
 
   // Select mode
   selectMode?: boolean
@@ -79,6 +90,12 @@ export default function FilesTable({
   message,
   isShared,
   onDownload,
+  isEditing = false,
+  onRename,
+  onCancelEdit,
+  onRequestRename,
+  onCut,
+  onCopy,
   selectMode = false,
   isSelected = false,
   onToggleSelect,
@@ -89,6 +106,30 @@ export default function FilesTable({
   const [openMsg, setOpenMsg] = useState(false)
   const [open, setOpen] = useState(false)
   const [rightClickAt, setRightClickAt] = useState<{ x: number; y: number } | null>(null)
+  const [value, setValue] = useState(name)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) {
+      setValue(name)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
+    }
+  }, [isEditing, name])
+
+  const commitRename = () => onRename?.(value)
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      commitRename()
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      onCancelEdit?.()
+    }
+  }
 
   const formatDateIfNeeded = (dateString: string): string => {
     if (dateString && (dateString.includes("T") || dateString.includes("-"))) {
@@ -102,12 +143,14 @@ export default function FilesTable({
     : lastModified
 
   const handleRowClick = () => {
+    if (isEditing) return
     if (selectMode) onToggleSelect?.()
   }
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isEditing) return
 
     // Bulk right-click: selected row in select mode with ≥1 item selected
     if (selectMode && isSelected && selectedCount > 0 && onBulkRightClick) {
@@ -126,6 +169,9 @@ export default function FilesTable({
     onDelete: onToggleDelete,
     onShare: () => setOpen(true),
     onToggleFavorite,
+    onRename: () => onRequestRename?.(),
+    onCut: () => onCut?.(),
+    onCopy: () => onCopy?.(),
   }
 
   return (
@@ -152,39 +198,55 @@ export default function FilesTable({
       <td className="px-4 py-2 w-[420px]">
         <div className="relative flex items-center gap-3">
           <img src={icon} className="w-6 h-6 shrink-0" />
-          <span className="truncate max-w-[220px]">{name}</span>
-          <div className="absolute right-0 hidden group-hover:flex items-center gap-3 bg-gray-100 pl-3">
-            <button onClick={(e) => { e.stopPropagation(); onDownload?.() }}>
-              <img src={download} className="w-4 h-4 opacity-70 hover:opacity-100" />
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onToggleDelete() }}>
-              <img src={isDeleted ? deleted : trash} className="w-4 h-4 opacity-70 hover:opacity-100" />
-            </button>
-            {!isDeleted && (
-              <button onClick={(e) => { e.stopPropagation(); setOpen(true) }}>
-                <img src={share} className="w-4 h-4 opacity-70 hover:opacity-100" />
-              </button>
-            )}
-            <ShareModal
-              open={open}
-              onClose={() => setOpen(false)}
-              fileName={name}
-              onShare={(payload: any) => {
-                onShare?.(payload)
-                setOpen(false)
-              }}
+
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={handleRenameKeyDown}
+              onBlur={commitRename}
+              onClick={(e) => e.stopPropagation()}
+              className="font-normal text-sm w-full max-w-[220px] border border-blue-500 rounded px-1 py-0.5 focus:outline-none selection:bg-blue-200 selection:text-black"
             />
-            <FileMenu {...fileMenuActionProps}>
-              <button onClick={(e) => e.stopPropagation()}>
-                <img src={more} className="w-4 h-4 opacity-70 hover:opacity-100" />
+          ) : (
+            <span className="truncate max-w-[220px]">{name}</span>
+          )}
+
+          {!isEditing && (
+            <div className="absolute right-0 hidden group-hover:flex items-center gap-3 bg-gray-100 pl-3">
+              <button onClick={(e) => { e.stopPropagation(); onDownload?.() }}>
+                <img src={download} className="w-4 h-4 opacity-70 hover:opacity-100" />
               </button>
-            </FileMenu>
-            {!isDeleted && (
-              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }}>
-                <img src={isFavorite ? fav : star} className="w-4 h-4" />
+              <button onClick={(e) => { e.stopPropagation(); onToggleDelete() }}>
+                <img src={isDeleted ? deleted : trash} className="w-4 h-4 opacity-70 hover:opacity-100" />
               </button>
-            )}
-          </div>
+              {!isDeleted && (
+                <button onClick={(e) => { e.stopPropagation(); setOpen(true) }}>
+                  <img src={share} className="w-4 h-4 opacity-70 hover:opacity-100" />
+                </button>
+              )}
+              <ShareModal
+                open={open}
+                onClose={() => setOpen(false)}
+                fileName={name}
+                onShare={(payload: any) => {
+                  onShare?.(payload)
+                  setOpen(false)
+                }}
+              />
+              <FileMenu {...fileMenuActionProps}>
+                <button onClick={(e) => e.stopPropagation()}>
+                  <img src={more} className="w-4 h-4 opacity-70 hover:opacity-100" />
+                </button>
+              </FileMenu>
+              {!isDeleted && (
+                <button onClick={(e) => { e.stopPropagation(); onToggleFavorite() }}>
+                  <img src={isFavorite ? fav : star} className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </td>
 

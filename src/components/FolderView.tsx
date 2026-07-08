@@ -11,11 +11,22 @@ type Props = {
   editingFolderId: string | null;
   onRenameFolder: (id: string, newName: string) => void;
   onCancelFolderEdit: (id: string) => void;
+  onRequestRenameFolder: (id: string) => void;
+  onCutFolder?: (folder: any) => void;
+  onCopyFolder?: (folder: any) => void;
+  onPasteIntoFolder?: (folderId: string) => void;
+  isPasteValidForFolder?: (folderId: string) => boolean;
   favorites: any[];
   onToggleFavorite: (file: any) => void;
   deletedFiles: any[];
   onToggleDelete: (file: any) => void;
   onShare: (payload: any) => void;
+  editingFileName: string | null;
+  onRenameFile: (oldName: string, newName: string) => void;
+  onCancelFileEdit: () => void;
+  onRequestRenameFile: (name: string) => void;
+  onCutFile?: (file: any) => void;
+  onCopyFile?: (file: any) => void;
 };
 
 export default function FolderView({
@@ -27,11 +38,22 @@ export default function FolderView({
   editingFolderId,
   onRenameFolder,
   onCancelFolderEdit,
+  onRequestRenameFolder,
+  onCutFolder,
+  onCopyFolder,
+  onPasteIntoFolder,
+  isPasteValidForFolder,
   favorites,
   onToggleFavorite,
   deletedFiles,
   onToggleDelete,
   onShare,
+  editingFileName,
+  onRenameFile,
+  onCancelFileEdit,
+  onRequestRenameFile,
+  onCutFile,
+  onCopyFile,
 }: Props) {
   return (
     <>
@@ -61,7 +83,12 @@ export default function FolderView({
               isEditing={editingFolderId === f.id}
               onRename={onRenameFolder}
               onCancelEdit={onCancelFolderEdit}
+              onRequestRename={() => onRequestRenameFolder(f.id)}
               onOpen={() => onOpenFolder(f)}
+              onCut={() => onCutFolder?.(f)}
+              onCopy={() => onCopyFolder?.(f)}
+              onPaste={() => onPasteIntoFolder?.(f.id)}
+              canPaste={isPasteValidForFolder ? isPasteValidForFolder(f.id) : false}
             />
           ))}
         </div>
@@ -94,6 +121,12 @@ export default function FolderView({
                 isDeleted={deletedFiles.some(f => f.name === file.name)}
                 onToggleDelete={() => onToggleDelete(file)}
                 onShare={onShare}
+                isEditing={editingFileName === file.name}
+                onRename={(newName) => onRenameFile(file.name, newName)}
+                onCancelEdit={onCancelFileEdit}
+                onRequestRename={() => onRequestRenameFile(file.name)}
+                onCut={() => onCutFile?.(file)}
+                onCopy={() => onCopyFile?.(file)}
               />
             ))}
           </tbody>

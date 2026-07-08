@@ -72,6 +72,11 @@ export default function App() {
   const [deletedFiles, deleteFiles] = useState<any[]>([]);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  // Tracks a folder that was just created (still blank / unnamed) so that
+  // cancelling its rename discards it, instead of discarding an existing
+  // folder whose name the user is merely editing via "Rename".
+  const [newFolderId, setNewFolderId] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string | null>(null);
 
   // ----- Folder-level favorite/delete/share state -----
   const [favoriteFolderIds, setFavoriteFolderIds] = useState<string[]>([]);
@@ -251,6 +256,14 @@ export default function App() {
     setClipboard({ folderIds: [folder.id], fileIds: [], mode: "copy" });
   };
 
+  const cutFile = (file: { id: string; name: string }) => {
+    setClipboard({ folderIds: [], fileIds: [file.id], mode: "cut" });
+  };
+
+  const copyFile = (file: { id: string; name: string }) => {
+    setClipboard({ folderIds: [], fileIds: [file.id], mode: "copy" });
+  };
+
   const cutSelection = () => {
     if (selectedFolderIds.length === 0 && selectedFileIds.length === 0) return;
     setClipboard({ folderIds: selectedFolderIds, fileIds: selectedFileIds, mode: "cut" });
@@ -369,22 +382,57 @@ export default function App() {
     };
     setFolders((prev) => [newFolder, ...prev]);
     setEditingFolderId(newFolder.id);
+    setNewFolderId(newFolder.id);
   };
 
   const renameFolder = (id: string, newName: string) => {
     const trimmed = newName.trim();
+    const isBlankNewFolder = !trimmed && id === newFolderId;
     setFolders((prev) =>
       trimmed
         ? prev.map((f) => (f.id === id ? { ...f, name: trimmed } : f))
-        : prev.filter((f) => f.id !== id)
+        // Only discard the folder outright if it's a just-created, never-named
+        // folder. An existing folder being renamed just keeps its old name.
+        : isBlankNewFolder
+        ? prev.filter((f) => f.id !== id)
+        : prev
     );
     setEditingFolderId(null);
+    setNewFolderId(null);
   };
 
   const cancelFolderEdit = (id: string) => {
-    setFolders((prev) => prev.filter((f) => f.id !== id));
+    // Escaping out of a brand-new, still-unnamed folder discards it. Escaping
+    // out of renaming an existing folder just leaves its name untouched.
+    if (id === newFolderId) {
+      setFolders((prev) => prev.filter((f) => f.id !== id));
+    }
     setEditingFolderId(null);
+    setNewFolderId(null);
   };
+
+  // Enter rename mode for an existing folder (triggered from the "Rename" menu item).
+  const requestRenameFolder = (id: string) => setEditingFolderId(id);
+
+  // ---------------------------------------------------------------------------
+  // File rename
+  // ---------------------------------------------------------------------------
+
+  // Enter rename mode for an existing file (triggered from the "Rename" menu item).
+  const requestRenameFile = (name: string) => setEditingFileName(name);
+
+  const renameFile = (oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    setEditingFileName(null);
+    if (!trimmed || trimmed === oldName) return;
+
+    setFiles((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
+    setFavorites((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
+    deleteFiles((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
+    setSharedFiles((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
+  };
+
+  const cancelFileEdit = () => setEditingFileName(null);
 
   const getFolderDisplayStats = (folder: any) => {
     const folderFiles = files.filter((f) => f.folderId === folder.id);
@@ -744,6 +792,37 @@ export default function App() {
     .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
 
   // ---------------------------------------------------------------------------
+  // Whether the currently visible view has any files or folders that could be
+  // selected. Used to disable "Select items" in the right-click menu when the
+  // view is empty.
+  // ---------------------------------------------------------------------------
+  const hasSelectableItems = currentFolderId
+    ? folders.some((f) => f.parentId === currentFolderId) ||
+      files
+        .filter((f) => f.folderId === currentFolderId)
+        .some((f) => !deletedFiles.some((d) => d.name === f.name))
+    : view === "dashboard"
+    ? rootFolders.length > 0 || activeRootFiles.length > 0
+    : view === "folders"
+    ? rootFolders.length > 0
+    : view === "files"
+    ? files.length > 0
+    : view === "favorites"
+    ? favoriteFolders.length > 0 ||
+      favorites.some((f) => !deletedFiles.some((d) => d.name === f.name))
+    : view === "shared"
+    ? sharedFolders.length > 0 ||
+      sharedFiles.some((f) => !deletedFiles.some((d) => d.name === f.name))
+    : view === "deletedFiles"
+    ? deletedFolders.some(
+        (f) => f.parentId === null || !deletedFolderIds.includes(f.parentId)
+      ) ||
+      deletedFiles.some(
+        (f) => f.folderId === null || !deletedFolderIds.includes(f.folderId)
+      )
+    : true;
+
+  // ---------------------------------------------------------------------------
   // Search: build a flat, searchable index of every folder + file
   // ---------------------------------------------------------------------------
 
@@ -943,11 +1022,22 @@ export default function App() {
             editingFolderId={editingFolderId}
             onRenameFolder={renameFolder}
             onCancelFolderEdit={cancelFolderEdit}
+            onRequestRenameFolder={requestRenameFolder}
+            onCutFolder={cutFolder}
+            onCopyFolder={copyFolder}
+            onPasteIntoFolder={pasteFolder}
+            isPasteValidForFolder={isPasteTargetValid}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
             deletedFiles={deletedFiles}
             onToggleDelete={toggleDelete}
             onShare={handleShare}
+            editingFileName={editingFileName}
+            onRenameFile={renameFile}
+            onCancelFileEdit={cancelFileEdit}
+            onRequestRenameFile={requestRenameFile}
+            onCutFile={cutFile}
+            onCopyFile={copyFile}
           />
         ) : (
           <>
@@ -983,6 +1073,7 @@ export default function App() {
                         isEditing={editingFolderId === f.id}
                         onRename={renameFolder}
                         onCancelEdit={cancelFolderEdit}
+                        onRequestRename={() => requestRenameFolder(f.id)}
                         onOpen={() => openFolder(f)}
                         isFavorite={favoriteFolderIds.includes(f.id)}
                         isDeleted={false}
@@ -1048,6 +1139,12 @@ export default function App() {
                           onToggleDelete={() => toggleDelete(mergedFile)}
                           onShare={handleShare}
                           onDownload={() => downloadFile(mergedFile)}
+                          isEditing={editingFileName === mergedFile.name}
+                          onRename={(newName) => renameFile(mergedFile.name, newName)}
+                          onCancelEdit={cancelFileEdit}
+                          onRequestRename={() => requestRenameFile(mergedFile.name)}
+                          onCut={() => cutFile(mergedFile)}
+                          onCopy={() => copyFile(mergedFile)}
                           selectMode={selectMode}
                           isSelected={selectedFileIds.includes(mergedFile.id ?? mergedFile.name)}
                           onToggleSelect={() =>
@@ -1070,7 +1167,12 @@ export default function App() {
                 editingFolderId={editingFolderId}
                 onRename={renameFolder}
                 onCancelEdit={cancelFolderEdit}
+                onRequestRename={requestRenameFolder}
                 onOpenFolder={openFolder}
+                onCutFolder={cutFolder}
+                onCopyFolder={copyFolder}
+                onPasteIntoFolder={pasteFolder}
+                isPasteValidForFolder={isPasteTargetValid}
               />
             )}
 
@@ -1085,6 +1187,12 @@ export default function App() {
                 title="Files"
                 onShare={handleShare}
                 onDownload={downloadFile}
+                editingFileName={editingFileName}
+                onRenameFile={renameFile}
+                onCancelFileEdit={cancelFileEdit}
+                onRequestRenameFile={requestRenameFile}
+                onCutFile={cutFile}
+                onCopyFile={copyFile}
               />
             )}
 
@@ -1096,6 +1204,16 @@ export default function App() {
                   .filter((f) => !deletedFiles.some((d) => d.name === f.name))
                   .map((file) => getMergedFile(file))}
                 onBack={() => setView("dashboard")}
+                editingFolderId={editingFolderId}
+                onRenameFolder={renameFolder}
+                onCancelFolderEdit={cancelFolderEdit}
+                onRequestRenameFolder={requestRenameFolder}
+                editingFileName={editingFileName}
+                onRenameFile={renameFile}
+                onCancelFileEdit={cancelFileEdit}
+                onRequestRenameFile={requestRenameFile}
+                onCutFile={cutFile}
+                onCopyFile={copyFile}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
                 favoriteFolderIds={favoriteFolderIds}
@@ -1129,6 +1247,16 @@ export default function App() {
                   (f) => !deletedFiles.some((d) => d.name === f.name)
                 )}
                 onBack={() => setView("dashboard")}
+                editingFolderId={editingFolderId}
+                onRenameFolder={renameFolder}
+                onCancelFolderEdit={cancelFolderEdit}
+                onRequestRenameFolder={requestRenameFolder}
+                editingFileName={editingFileName}
+                onRenameFile={renameFile}
+                onCancelFileEdit={cancelFileEdit}
+                onRequestRenameFile={requestRenameFile}
+                onCutFile={cutFile}
+                onCopyFile={copyFile}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
                 favoriteFolderIds={favoriteFolderIds}
@@ -1166,6 +1294,14 @@ export default function App() {
                   (f) => f.folderId === null || !deletedFolderIds.includes(f.folderId)
                 )}
                 onBack={() => setView("dashboard")}
+                editingFolderId={editingFolderId}
+                onRenameFolder={renameFolder}
+                onCancelFolderEdit={cancelFolderEdit}
+                onRequestRenameFolder={requestRenameFolder}
+                editingFileName={editingFileName}
+                onRenameFile={renameFile}
+                onCancelFileEdit={cancelFileEdit}
+                onRequestRenameFile={requestRenameFile}
                 favorites={favorites.filter(
                   (f) => !deletedFiles.some((d) => d.name === f.name)
                 )}
@@ -1264,6 +1400,7 @@ export default function App() {
         }}
         isSelectModeActive={selectMode}
         canPaste={isPasteTargetValid(currentFolderId)}
+        hasSelectableItems={hasSelectableItems}
       />
 
       {/* Bulk right-click menu (right-click on a selected item) */}

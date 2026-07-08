@@ -13,6 +13,8 @@ type FolderCardProps = {
   isEditing?: boolean;
   onRename?: (id: string, newName: string) => void;
   onCancelEdit?: (id: string) => void;
+  /** Called when the user picks "Rename" from the ••• / right-click menu to enter edit mode. */
+  onRequestRename?: () => void;
   onOpen?: () => void;
 
   isFavorite?: boolean;
@@ -52,6 +54,7 @@ export default function FolderCard({
   isEditing = false,
   onRename,
   onCancelEdit,
+  onRequestRename,
   onOpen,
   isFavorite = false,
   isDeleted = false,
@@ -125,6 +128,7 @@ export default function FolderCard({
     onShare: () => onShare?.(),
     onToggleFavorite: () => onToggleFavorite?.(),
     onProperties: () => onProperties?.(),
+    onRename: () => onRequestRename?.(),
     onCut: () => onCut?.(),
     onCopy: () => onCopy?.(),
     onPaste: () => onPaste?.(),
