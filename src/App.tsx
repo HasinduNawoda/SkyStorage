@@ -20,7 +20,7 @@ import BulkMenu from "./components/BulkMenu";
 import SelectionOverlay from "./components/SelectionOverlay";
 import AuthPage, { type LoginPayload, type SignUpPayload } from "./components/Auth/AuthPage";
 import { formatDate } from "./utils/formatDate";
-import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout } from "./utils/localAuth";
+import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout } from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
 
@@ -39,7 +39,18 @@ export default function App() {
   // No backend yet, so this is backed by src/utils/localAuth.ts (localStorage)
   // rather than a real API — see that file's header comment. It's a real,
   // working sign up / sign in / sign out flow, just not one a server can see.
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getSession());
+// getSession() now makes a real network call (checking the session cookie
+// against the backend), so unlike before, we can't know synchronously on
+// first render whether the user is logged in — hence the extra loading state.
+const [isAuthenticated, setIsAuthenticated] = useState(false);
+const [authChecked, setAuthChecked] = useState(false);
+
+useEffect(() => {
+  getSession().then((session) => {
+    setIsAuthenticated(!!session);
+    setAuthChecked(true);
+  });
+}, []);
 
   /** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
   const handleLogin = async (payload: LoginPayload) => {
@@ -922,9 +933,13 @@ export default function App() {
   // Render
   // ---------------------------------------------------------------------------
 
-  if (!isAuthenticated) {
-    return <AuthPage onLogin={handleLogin} onSignUp={handleSignUp} />;
-  }
+  if (!authChecked) {
+  return null; // brief blank screen while checking the session — swap for a spinner if you'd like
+}
+
+if (!isAuthenticated) {
+  return <AuthPage onLogin={handleLogin} onSignUp={handleSignUp} />;
+}
 
   return (
     <div className="flex h-screen overflow-hidden">
