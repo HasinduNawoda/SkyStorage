@@ -53,3 +53,26 @@ export async function login(email: string, password: string): Promise<Session> {
 export async function logout(): Promise<void> {
   await apiFetch("/auth/logout", { method: "POST" });
 }
+
+export type ApiFolder = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  ownerId: string;
+  isFavorite: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+};
+
+/** Fetches every folder this user owns, in one call — the frontend keeps the
+ *  whole tree in memory for its client-side filtering/search logic. */
+export async function getAllFolders(): Promise<ApiFolder[]> {
+  return apiFetch("/folders?all=true");
+}
+
+export async function createFolder(name: string, parentId: string | null): Promise<ApiFolder> {
+  return apiFetch("/folders", {
+    method: "POST",
+    body: JSON.stringify({ name, parentId }),
+  });
+}

@@ -20,7 +20,7 @@ import BulkMenu from "./components/BulkMenu";
 import SelectionOverlay from "./components/SelectionOverlay";
 import AuthPage, { type LoginPayload, type SignUpPayload } from "./components/Auth/AuthPage";
 import { formatDate } from "./utils/formatDate";
-import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout } from "./utils/api";
+import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout, getAllFolders, createFolder } from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
 
@@ -51,6 +51,32 @@ useEffect(() => {
     setAuthChecked(true);
   });
 }, []);
+
+// Once logged in, replace the (previously empty) local folder state with
+// the user's real folders from the backend. favoriteFolderIds/deletedFolderIds
+// are derived from each folder's isFavorite/deletedAt — the frontend still
+// tracks those as separate id lists, same as before, just now seeded from
+// real data instead of starting empty.
+useEffect(() => {
+  if (!isAuthenticated) return;
+  getAllFolders().then((apiFolders) => {
+    setFolders(
+      apiFolders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        parentId: f.parentId,
+        files: 0,
+        size: "0 MB",
+      }))
+    );
+    setFavoriteFolderIds(apiFolders.filter((f) => f.isFavorite).map((f) => f.id));
+    setDeletedFolderIds(apiFolders.filter((f) => f.deletedAt).map((f) => f.id));
+  });
+}, [isAuthenticated]);
+
+/** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
+
+
 
   /** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
   const handleLogin = async (payload: LoginPayload) => {
