@@ -23,7 +23,6 @@ import { formatDate } from "./utils/formatDate";
 import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout, getAllFolders, createFolder } from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -400,7 +399,7 @@ useEffect(() => {
   // Folder operations
   // ---------------------------------------------------------------------------
 
-  const createNewFolder = () => {
+  const createNewFolder = async () => {
     const siblings = folders.filter((f) => f.parentId === currentFolderId);
     const existingNames = siblings.map((f) => f.name);
     let base = "New folder";
@@ -410,12 +409,13 @@ useEffect(() => {
       name = `${base} (${counter})`;
       counter++;
     }
+    const created = await createFolder(name, currentFolderId);
     const newFolder = {
-      id: crypto.randomUUID(),
-      name,
+      id: created.id,
+      name: created.name,
       files: 0,
       size: "0 MB",
-      parentId: currentFolderId,
+      parentId: created.parentId,
     };
     setFolders((prev) => [newFolder, ...prev]);
     setEditingFolderId(newFolder.id);
