@@ -70,6 +70,21 @@ useEffect(() => {
     );
     setFavoriteFolderIds(apiFolders.filter((f) => f.isFavorite).map((f) => f.id));
     setDeletedFolderIds(apiFolders.filter((f) => f.deletedAt).map((f) => f.id));
+
+    // Re-validate the folder trail restored from localStorage now that we
+    // have real data: drop any ids that no longer exist (renamed/deleted
+    // elsewhere), and refresh stale names.
+    setFolderStack((prevStack) => {
+      const byId = new Map(apiFolders.map((f) => [f.id, f]));
+      const rebuilt: { id: string; name: string }[] = [];
+      for (const entry of prevStack) {
+        const match = byId.get(entry.id);
+        if (!match) break; // trail broken here — stop, don't guess further
+        rebuilt.push({ id: match.id, name: match.name });
+      }
+      return rebuilt;
+    });
+    setFolderStackRestored(true);
   });
 }, [isAuthenticated]);
 
@@ -144,7 +159,39 @@ useEffect(() => {
   const dragOccurred = useRef(false);
 
   // ----- Folder navigation -----
-  const [folderStack, setFolderStack] = useState<{ id: string; name: string }[]>([]);
+  // Persisted to localStorage so a page refresh doesn't drop you back to the
+  // root and make nested folders "disappear" — they were never lost from the
+  // backend, the UI just forgot which folder it had drilled into. Once the
+  // real folder list comes back from the backend (see the getAllFolders
+  // effect below), we re-validate this against it in case a folder in the
+  // saved trail was renamed, moved, or deleted since the last visit.
+  const FOLDER_STACK_KEY = "skystorage:folderStack";
+  const [folderStack, setFolderStackState] = useState<{ id: string; name: string }[]>(() => {
+    try {
+      const raw = localStorage.getItem(FOLDER_STACK_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [folderStackRestored, setFolderStackRestored] = useState(false);
+
+  const setFolderStack = (
+    updater: { id: string; name: string }[] | ((prev: { id: string; name: string }[]) => { id: string; name: string }[])
+  ) => {
+    setFolderStackState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      try {
+        if (next.length) localStorage.setItem(FOLDER_STACK_KEY, JSON.stringify(next));
+        else localStorage.removeItem(FOLDER_STACK_KEY);
+      } catch {
+        // localStorage unavailable (private browsing, etc.) — navigation still
+        // works for this session, it just won't survive a refresh.
+      }
+      return next;
+    });
+  };
+
   const currentFolderId = folderStack.length
     ? folderStack[folderStack.length - 1].id
     : null;
@@ -976,6 +1023,7 @@ if (!isAuthenticated) {
           // TODO(backend): also invalidate the session/token server-side once auth exists
           localLogout();
           setIsAuthenticated(false);
+          setFolderStack([]); // clear the persisted trail so it can't leak into the next session
         }}
       />
 
@@ -1388,6 +1436,7 @@ if (!isAuthenticated) {
         // TODO(backend): also invalidate the session/token server-side once auth exists
         localLogout();
         setIsAuthenticated(false);
+        setFolderStack([]); // clear the persisted trail so it can't leak into the next session
       }}
     />
   </div>
