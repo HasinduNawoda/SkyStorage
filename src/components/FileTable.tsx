@@ -105,6 +105,7 @@ export default function FilesTable({
   const icon = getIconByType(getFileType(name))
   const [openMsg, setOpenMsg] = useState(false)
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [rightClickAt, setRightClickAt] = useState<{ x: number; y: number } | null>(null)
   const [value, setValue] = useState(name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -214,7 +215,11 @@ export default function FilesTable({
           )}
 
           {!isEditing && (
-            <div className="absolute right-0 hidden group-hover:flex items-center gap-3 bg-gray-100 pl-3">
+            <div
+              className={`absolute right-0 items-center gap-3 bg-gray-100 pl-3 ${
+                menuOpen ? "flex" : "hidden group-hover:flex"
+              }`}
+            >
               <button onClick={(e) => { e.stopPropagation(); onDownload?.() }}>
                 <img src={download} className="w-4 h-4 opacity-70 hover:opacity-100" />
               </button>
@@ -235,7 +240,7 @@ export default function FilesTable({
                   setOpen(false)
                 }}
               />
-              <FileMenu {...fileMenuActionProps}>
+              <FileMenu {...fileMenuActionProps} onOpenChange={setMenuOpen}>
                 <button onClick={(e) => e.stopPropagation()}>
                   <img src={more} className="w-4 h-4 opacity-70 hover:opacity-100" />
                 </button>
