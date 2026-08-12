@@ -127,10 +127,10 @@ export default function FolderMenu(props: FolderMenuProps) {
   const { children, openAt, onClosePositioned, ...contentProps } = props
 
   // Right-click mode: controlled open state, anchored to an invisible point at the cursor.
-  if (openAt !== undefined) {
+  if (openAt) {
     return (
       <Menu.Root
-        open={!!openAt}
+        open
         onOpenChange={(d) => {
           if (!d.open) onClosePositioned?.()
         }}
@@ -139,8 +139,8 @@ export default function FolderMenu(props: FolderMenuProps) {
           <div
             style={{
               position: "fixed",
-              top: openAt?.y ?? 0,
-              left: openAt?.x ?? 0,
+              top: openAt.y,
+              left: openAt.x,
               width: 1,
               height: 1,
             }}
@@ -154,6 +154,10 @@ export default function FolderMenu(props: FolderMenuProps) {
       </Menu.Root>
     )
   }
+
+  // openAt was explicitly passed as null (closed, but still "controlled" mode):
+  // render nothing at all, rather than mounting a closed trigger at (0, 0).
+  if (openAt !== undefined) return null
 
   // Click-trigger mode: the ••• button passed in as children.
   return (

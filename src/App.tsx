@@ -92,17 +92,70 @@ useEffect(() => {
 
 
 
-  /** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
   const handleLogin = async (payload: LoginPayload) => {
-    await localLogin(payload.email, payload.password);
+    await login(payload.email, payload.password);
     setIsAuthenticated(true);
   };
 
-  /** TODO(backend): swap for a real POST /auth/signup call once the backend exists. */
   const handleSignUp = async (payload: SignUpPayload) => {
-    await localSignUp(payload.name, payload.email, payload.password);
+    await signUp(payload.name, payload.email, payload.password);
     setIsAuthenticated(true);
   };
+
+  const handleSignOut = async () => {
+    await logout().catch(console.error);
+    setIsAuthenticated(false);
+    setFolderStack([]);
+  };
+
+  // Load folders & files from Postgres when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    Promise.all([getAllFolders(), getAllFiles()]).then(([apiFolders, apiFiles]) => {
+      setFolders(
+        apiFolders.map((f) => ({
+          id: f.id,
+          name: f.name,
+          parentId: f.parentId,
+          files: 0,
+          size: "0 MB",
+        }))
+      );
+      setFavoriteFolderIds(apiFolders.filter((f) => f.isFavorite).map((f) => f.id));
+      setDeletedFolderIds(apiFolders.filter((f) => f.deletedAt).map((f) => f.id));
+
+      setFiles(
+        apiFiles.map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: `${(f.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
+          lastModified: new Date(f.createdAt).toLocaleDateString(),
+          folderId: f.folderId,
+        }))
+      );
+
+      setFavorites(
+        apiFiles.filter((f) => f.isFavorite && !f.deletedAt).map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: `${(f.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
+          lastModified: new Date(f.createdAt).toLocaleDateString(),
+          folderId: f.folderId,
+        }))
+      );
+
+      deleteFiles(
+        apiFiles.filter((f) => f.deletedAt).map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: `${(f.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
+          lastModified: new Date(f.createdAt).toLocaleDateString(),
+          folderId: f.folderId,
+          wasFavorite: f.isFavorite,
+        }))
+      );
+    }).catch((err) => console.error("Data load error:", err));
+  }, [isAuthenticated]);
 
   const [view, setView] = useState<
     "dashboard" | "deep_clean" | "settings" | "shared" | "favorites" | "deletedFiles" | "folders" | "files"
@@ -376,19 +429,25 @@ useEffect(() => {
    * pasteSelection: moves or deep-clones all clipboard folders (with their nested
    * subtrees) and all clipboard files into targetFolderId.
    */
-  const pasteSelection = (targetFolderId: string | null) => {
+  const pasteSelection = async (targetFolderId: string | null) => {
     if (!clipboard || !isPasteTargetValid(targetFolderId)) return;
 
     if (clipboard.mode === "cut") {
-      // Move folders: repoint their parentId
+      // Move folders: repoint their parentId (persist to DB)
       const folderIdSet = new Set(clipboard.folderIds);
+      for (const fId of clipboard.folderIds) {
+        try { await updateFolder(fId, { parentId: targetFolderId }); } catch (e) { console.error("move folder err:", e); }
+      }
       setFolders((prev) =>
         prev.map((f) =>
           folderIdSet.has(f.id) ? { ...f, parentId: targetFolderId } : f
         )
       );
-      // Move files: repoint their folderId
+      // Move files: repoint their folderId (persist to DB)
       const fileIdSet = new Set(clipboard.fileIds);
+      for (const fId of clipboard.fileIds) {
+        try { await updateFile(fId, { folderId: targetFolderId }); } catch (e) { console.error("move file err:", e); }
+      }
       setFiles((prev) =>
         prev.map((f) => (fileIdSet.has(f.id) ? { ...f, folderId: targetFolderId } : f))
       );
@@ -469,14 +528,17 @@ useEffect(() => {
     setNewFolderId(newFolder.id);
   };
 
-  const renameFolder = (id: string, newName: string) => {
+  const renameFolder = async (id: string, newName: string) => {
     const trimmed = newName.trim();
     const isBlankNewFolder = !trimmed && id === newFolderId;
+    if (trimmed) {
+      try { await updateFolder(id, { name: trimmed }); } catch (e) { console.error("rename folder err:", e); }
+    } else if (isBlankNewFolder) {
+      try { await deleteFolder(id); } catch (e) { console.error("delete blank folder err:", e); }
+    }
     setFolders((prev) =>
       trimmed
         ? prev.map((f) => (f.id === id ? { ...f, name: trimmed } : f))
-        // Only discard the folder outright if it's a just-created, never-named
-        // folder. An existing folder being renamed just keeps its old name.
         : isBlankNewFolder
         ? prev.filter((f) => f.id !== id)
         : prev
@@ -485,10 +547,11 @@ useEffect(() => {
     setNewFolderId(null);
   };
 
-  const cancelFolderEdit = (id: string) => {
+  const cancelFolderEdit = async (id: string) => {
     // Escaping out of a brand-new, still-unnamed folder discards it. Escaping
     // out of renaming an existing folder just leaves its name untouched.
     if (id === newFolderId) {
+      try { await deleteFolder(id); } catch (e) { console.error("cancel folder err:", e); }
       setFolders((prev) => prev.filter((f) => f.id !== id));
     }
     setEditingFolderId(null);
@@ -505,10 +568,16 @@ useEffect(() => {
   // Enter rename mode for an existing file (triggered from the "Rename" menu item).
   const requestRenameFile = (name: string) => setEditingFileName(name);
 
-  const renameFile = (oldName: string, newName: string) => {
+  const renameFile = async (oldName: string, newName: string) => {
     const trimmed = newName.trim();
     setEditingFileName(null);
     if (!trimmed || trimmed === oldName) return;
+
+    // Find the file's DB id and persist the rename
+    const target = files.find((f) => f.name === oldName);
+    if (target?.id) {
+      try { await updateFile(target.id, { name: trimmed }); } catch (e) { console.error("rename file err:", e); }
+    }
 
     setFiles((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
     setFavorites((prev) => prev.map((f) => (f.name === oldName ? { ...f, name: trimmed } : f)));
@@ -550,30 +619,41 @@ useEffect(() => {
   const handleFileUploadClick = () => fileInputRef.current?.click();
   const handleFolderUploadClick = () => folderInputRef.current?.click();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    let fileId = crypto.randomUUID();
+    try {
+      const created = await createFile({
+        name: file.name,
+        sizeBytes: file.size,
+        mimeType: file.type || "application/octet-stream",
+        folderId: currentFolderId,
+      });
+      fileId = created.id;
+    } catch (err) {
+      console.error("create file err:", err);
+    }
     const newFile = {
-      id: crypto.randomUUID(),
+      id: fileId,
       name: file.name,
       size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
       lastModified: new Date().toDateString(),
       folderId: currentFolderId,
-      // Keep the real File object so Download can hand back real bytes later.
       blob: file,
     };
     setFiles((prev) => [newFile, ...prev]);
     e.target.value = "";
   };
 
-  const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
     const pathToFolderId = new Map<string, string>();
     const newFolders: any[] = [];
     const newFiles: any[] = [];
 
-    Array.from(fileList).forEach((file) => {
+    for (const file of Array.from(fileList)) {
       const relPath = (file as any).webkitRelativePath as string;
       const parts = relPath.split("/");
       const fileName = parts.pop()!;
@@ -583,24 +663,43 @@ useEffect(() => {
       for (const segment of parts) {
         pathSoFar = pathSoFar ? `${pathSoFar}/${segment}` : segment;
         if (!pathToFolderId.has(pathSoFar)) {
-          const id = crypto.randomUUID();
-          pathToFolderId.set(pathSoFar, id);
-          newFolders.push({ id, name: segment, files: 0, size: "0 MB", parentId });
-          parentId = id;
+          let folderId = crypto.randomUUID();
+          try {
+            const createdFolder = await createFolder(segment, parentId);
+            folderId = createdFolder.id;
+          } catch (err) {
+            console.error("create folder upload err:", err);
+          }
+          pathToFolderId.set(pathSoFar, folderId);
+          newFolders.push({ id: folderId, name: segment, files: 0, size: "0 MB", parentId });
+          parentId = folderId;
         } else {
           parentId = pathToFolderId.get(pathSoFar)!;
         }
       }
 
+      let fileId = crypto.randomUUID();
+      try {
+        const createdFile = await createFile({
+          name: fileName,
+          sizeBytes: file.size,
+          mimeType: file.type || "application/octet-stream",
+          folderId: parentId,
+        });
+        fileId = createdFile.id;
+      } catch (err) {
+        console.error("create file upload err:", err);
+      }
+
       newFiles.push({
-        id: crypto.randomUUID(),
+        id: fileId,
         name: fileName,
         size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
         lastModified: new Date().toDateString(),
         folderId: parentId,
         blob: file,
       });
-    });
+    }
 
     setFolders((prev) => [...newFolders, ...prev]);
     setFiles((prev) => [...newFiles, ...prev]);
@@ -635,22 +734,29 @@ useEffect(() => {
     return sharedFile ? { ...file, ...sharedFile } : file;
   };
 
-  const toggleFavorite = (file: any) => {
+  const toggleFavorite = async (file: any) => {
+    const isCurrentlyFav = favorites.some((f) => f.name === file.name);
+    if (file.id) {
+      try { await updateFile(file.id, { isFavorite: !isCurrentlyFav }); } catch (e) { console.error("toggle fav err:", e); }
+    }
     setFavorites((prev) =>
-      prev.some((f) => f.name === file.name)
+      isCurrentlyFav
         ? prev.filter((f) => f.name !== file.name)
         : [...prev, file]
     );
   };
 
-  const toggleDelete = (file: any) => {
+  const toggleDelete = async (file: any) => {
     const isCurrentlyDeleted = deletedFiles.some((f) => f.name === file.name);
 
+    if (file.id) {
+      try {
+        await updateFile(file.id, { deletedAt: isCurrentlyDeleted ? null : new Date().toISOString() });
+      } catch (e) { console.error("toggle delete err:", e); }
+    }
+
     if (isCurrentlyDeleted) {
-      // Restoring: bring it back to favorites if it was favorited before deletion
       deleteFiles((prev) => prev.filter((f) => f.name !== file.name));
-      // Re-add to favorites only if it still exists in the favoritedBeforeDelete ref
-      // We track this via a simple convention: if file.wasFavorite is set, restore it
       if (file.wasFavorite) {
         const { wasFavorite: _, ...cleanFile } = file;
         setFavorites((prev) =>
@@ -658,7 +764,6 @@ useEffect(() => {
         );
       }
     } else {
-      // Deleting: strip from favorites and tag whether it was favorited
       const isFav = favorites.some((f) => f.name === file.name);
       setFavorites((prev) => prev.filter((f) => f.name !== file.name));
       deleteFiles((prev) => [...prev, { ...file, wasFavorite: isFav }]);
@@ -667,8 +772,10 @@ useEffect(() => {
 
   // ----- Folder-level favorite/delete/share -----
 
-  const toggleFavoriteFolder = (folder: { id: string; name: string }) => {
+  const toggleFavoriteFolder = async (folder: { id: string; name: string }) => {
     const isCurrentlyFavorite = favoriteFolderIds.includes(folder.id);
+    const newVal = !isCurrentlyFavorite;
+    try { await updateFolder(folder.id, { isFavorite: newVal }); } catch (e) { console.error("toggle fav folder err:", e); }
     const descFolderIds = getDescendantFolderIds(folder.id);
     const descFiles = getDescendantFiles(folder.id);
     if (isCurrentlyFavorite) {
@@ -686,8 +793,10 @@ useEffect(() => {
     }
   };
 
-  const toggleDeleteFolder = (folder: { id: string; name: string }) => {
+  const toggleDeleteFolder = async (folder: { id: string; name: string }) => {
     const isCurrentlyDeleted = deletedFolderIds.includes(folder.id);
+    const newDeletedAt = isCurrentlyDeleted ? null : new Date().toISOString();
+    try { await updateFolder(folder.id, { deletedAt: newDeletedAt }); } catch (e) { console.error("toggle delete folder err:", e); }
     const descFolderIds = getDescendantFolderIds(folder.id);
     const descFiles = getDescendantFiles(folder.id);
     if (isCurrentlyDeleted) {
@@ -1029,7 +1138,7 @@ if (!isAuthenticated) {
 
       <div
         ref={midSectionRef as React.RefObject<HTMLDivElement>}
-        className="flex-1 overflow-y-auto p-6 bg-[#FAFAFA]"
+        className="flex-1 overflow-y-auto scrollbar-hide p-6 bg-[#FAFAFA]"
         onContextMenu={view !== "settings" ? handleMidSectionContextMenu : undefined}
       >
         {view !== "settings" && (
@@ -1425,7 +1534,7 @@ if (!isAuthenticated) {
       </div>
 
       {view !== "settings" && (
-  <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto flex-shrink-0">
+  <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto scrollbar-hide flex-shrink-0">
     <StorageSummary
       onUploadFile={handleFileUploadClick}
       totalUsedMB={totalMB}
