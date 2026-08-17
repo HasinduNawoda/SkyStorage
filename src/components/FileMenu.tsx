@@ -21,6 +21,8 @@ type FileMenuProps = {
 
   // Click-trigger mode: wrap the trigger element as children.
   children?: React.ReactNode
+  /** Notified whenever the click-trigger dropdown opens/closes. */
+  onOpenChange?: (open: boolean) => void
 
   // Controlled position-trigger mode (right-click).
   openAt?: { x: number; y: number } | null
@@ -102,12 +104,12 @@ function FileMenuContent({
 }
 
 export default function FileMenu(props: FileMenuProps) {
-  const { children, openAt, onClosePositioned, ...contentProps } = props
+  const { children, openAt, onClosePositioned, onOpenChange, ...contentProps } = props
 
-  if (openAt !== undefined) {
+  if (openAt) {
     return (
       <Menu.Root
-        open={!!openAt}
+        open
         onOpenChange={(d) => {
           if (!d.open) onClosePositioned?.()
         }}
@@ -116,8 +118,8 @@ export default function FileMenu(props: FileMenuProps) {
           <div
             style={{
               position: "fixed",
-              top: openAt?.y ?? 0,
-              left: openAt?.x ?? 0,
+              top: openAt.y,
+              left: openAt.x,
               width: 1,
               height: 1,
             }}
@@ -132,8 +134,12 @@ export default function FileMenu(props: FileMenuProps) {
     )
   }
 
+  // openAt was explicitly passed as null (closed, but still "controlled" mode):
+  // render nothing at all, rather than mounting a closed trigger at (0, 0).
+  if (openAt !== undefined) return null
+
   return (
-    <Menu.Root>
+    <Menu.Root onOpenChange={(d) => onOpenChange?.(d.open)}>
       <Menu.Trigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         {children}
       </Menu.Trigger>
