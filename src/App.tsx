@@ -36,6 +36,7 @@ import {
   uploadFileBytes,
   createShare,
   getSharesWithMe,
+  getMyShares,
 } from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
@@ -89,7 +90,7 @@ export default function App() {
   // Load folders & files from Postgres when authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
-    Promise.all([getAllFolders(), getAllFiles(), getSharesWithMe()]).then(([apiFolders, apiFiles, apiSharesWithMe]) => {
+    Promise.all([getAllFolders(), getAllFiles(), getSharesWithMe(), getMyShares()]).then(([apiFolders, apiFiles, apiSharesWithMe, apiMyShares]) => {
       setFolders(
         apiFolders.map((f) => ({
           id: f.id,
@@ -133,9 +134,50 @@ export default function App() {
         }))
       );
 
-      // Populate sharedFiles with files shared WITH this user
-      setSharedFiles(
-        apiSharesWithMe.filter(s => s.file).map(s => ({
+      // --- Process Shares ---
+      // Group my shares by file
+      const mySharedFilesMap = new Map<string, any>();
+      apiMyShares.filter(s => s.file).forEach(s => {
+        if (!mySharedFilesMap.has(s.file!.id)) {
+          mySharedFilesMap.set(s.file!.id, {
+            id: s.file!.id,
+            name: s.file!.name,
+            size: `${(s.file!.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
+            lastModified: new Date(s.file!.createdAt).toLocaleDateString(),
+            folderId: s.file!.folderId,
+            dateShared: new Date(s.createdAt).toLocaleDateString(),
+            ownerName: "Me",
+            ownerEmail: "",
+            people: [],
+          });
+        }
+        const fileObj = mySharedFilesMap.get(s.file!.id);
+        fileObj.people.push({ email: s.sharedWith, role: s.role });
+      });
+
+      // Group my shares by folder
+      const mySharedFoldersMap = new Map<string, any>();
+      apiMyShares.filter(s => s.folder).forEach(s => {
+        if (!mySharedFoldersMap.has(s.folder!.id)) {
+          mySharedFoldersMap.set(s.folder!.id, {
+            id: s.folder!.id,
+            name: s.folder!.name,
+            parentId: s.folder!.parentId,
+            files: 0,
+            size: "0 MB",
+            dateShared: new Date(s.createdAt).toLocaleDateString(),
+            ownerName: "Me",
+            ownerEmail: "",
+            people: [],
+          });
+        }
+        const folderObj = mySharedFoldersMap.get(s.folder!.id);
+        folderObj.people.push({ email: s.sharedWith, role: s.role });
+      });
+
+      // Populate sharedFiles with files shared WITH this user AND BY this user
+      setSharedFiles([
+        ...apiSharesWithMe.filter(s => s.file).map(s => ({
           id: s.file!.id,
           name: s.file!.name,
           size: `${(s.file!.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
@@ -145,12 +187,14 @@ export default function App() {
           ownerName: s.owner?.name,
           ownerEmail: s.owner?.email,
           shareId: s.id,
-        }))
-      );
+          people: s.owner ? [{ email: s.owner.email, role: "Owner" }] : [],
+        })),
+        ...Array.from(mySharedFilesMap.values())
+      ]);
 
-      // Populate sharedFolders with folders shared WITH this user
-      setSharedFolders(
-        apiSharesWithMe.filter(s => s.folder).map(s => ({
+      // Populate sharedFolders with folders shared WITH this user AND BY this user
+      setSharedFolders([
+        ...apiSharesWithMe.filter(s => s.folder).map(s => ({
           id: s.folder!.id,
           name: s.folder!.name,
           parentId: s.folder!.parentId,
@@ -160,8 +204,10 @@ export default function App() {
           ownerName: s.owner?.name,
           ownerEmail: s.owner?.email,
           shareId: s.id,
-        }))
-      );
+          people: s.owner ? [{ email: s.owner.email, role: "Owner" }] : [],
+        })),
+        ...Array.from(mySharedFoldersMap.values())
+      ]);
 
     }).catch((err) => console.error("Data load error:", err));
   }, [isAuthenticated]);
