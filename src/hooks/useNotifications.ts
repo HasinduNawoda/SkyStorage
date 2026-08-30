@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { getSharesWithMe } from "../utils/api";
 
 export type AppNotification = {
   id: string;
@@ -13,82 +14,69 @@ export type AppNotification = {
   read: boolean;
 };
 
-// Seed data — 3 unread items so the bell badge starts at "3" as requested.
-const initialNotifications: AppNotification[] = [
-  {
-    id: "n1",
-    name: "Alex Kim",
-    message: "Alex Kim shared \"design_assets.zip\" with you.",
-    createdAt: "2026-07-01T14:20:00Z",
-    read: false,
-  },
-  {
-    id: "n2",
-    name: "Nina Fernando",
-    message: "Nina Fernando commented on \"Q4_Report_Final.pdf\".",
-    createdAt: "2026-07-01T09:05:00Z",
-    read: false,
-  },
-  {
-    id: "n3",
-    name: "Priya Sharma",
-    message: "Priya Sharma invited you to the \"Team Projects\" folder.",
-    createdAt: "2026-06-30T18:42:00Z",
-    read: false,
-  },
-  {
-    id: "n4",
-    name: "SkyStorage",
-    message: "Your upload \"backup_march2026.zip\" completed successfully.",
-    createdAt: "2026-06-29T11:15:00Z",
-    read: true,
-  },
-  {
-    id: "n5",
-    name: "Devon Clarke",
-    message: "Devon Clarke edited \"Roadmap_2026.docx\".",
-    createdAt: "2026-06-28T08:30:00Z",
-    read: true,
-  },
-  {
-    id: "n6",
-    name: "SkyStorage",
-    message: "Your storage usage reached 80% of your plan.",
-    createdAt: "2026-06-26T16:00:00Z",
-    read: true,
-  },
-  {
-    id: "n7",
-    name: "Maria Lopez",
-    message: "Maria Lopez requested access to \"Client Contracts\".",
-    createdAt: "2026-06-24T13:10:00Z",
-    read: true,
-  },
-  {
-    id: "n8",
-    name: "SkyStorage",
-    message: "A new device signed in to your account.",
-    createdAt: "2026-06-22T07:48:00Z",
-    read: true,
-  },
-];
-
 export function useNotifications() {
-  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    // 1. Load read status from localStorage
+    const readIds = new Set<string>();
+    try {
+      const stored = localStorage.getItem("sky_notifications_read");
+      if (stored) {
+        JSON.parse(stored).forEach((id: string) => readIds.add(id));
+      }
+    } catch (e) {}
+
+    // 2. Fetch real shares
+    getSharesWithMe()
+      .then((shares) => {
+        const notifs: AppNotification[] = shares.map((s) => {
+           const senderName = s.owner?.name || s.owner?.email || "Someone";
+           const itemName = s.file?.name || s.folder?.name || "an item";
+           const type = s.folder ? "folder" : "file";
+           
+           return {
+             id: s.id,
+             name: senderName,
+             message: `${senderName} shared the ${type} "${itemName}" with you.`,
+             createdAt: s.createdAt,
+             read: readIds.has(s.id),
+           };
+        });
+        
+        // Sort descending by date
+        notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setNotifications(notifs);
+      })
+      .catch((err) => {
+        console.error("Failed to load notifications:", err);
+      });
+  }, []);
 
   const unseenCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
   );
 
+  const persistRead = (newNotifs: AppNotification[]) => {
+    const readIds = newNotifs.filter(n => n.read).map(n => n.id);
+    localStorage.setItem("sky_notifications_read", JSON.stringify(readIds));
+  };
+
   const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      persistRead(updated);
+      return updated;
+    });
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      persistRead(updated);
+      return updated;
+    });
   }, []);
 
   return { notifications, unseenCount, markAsRead, markAllAsRead };
