@@ -20,9 +20,24 @@ import BulkMenu from "./components/BulkMenu";
 import SelectionOverlay from "./components/SelectionOverlay";
 import AuthPage, { type LoginPayload, type SignUpPayload } from "./components/Auth/AuthPage";
 import { formatDate } from "./utils/formatDate";
-import { getSession, login as localLogin, signUp as localSignUp, logout as localLogout, getAllFolders, createFolder } from "./utils/api";
+import {
+  getSession,
+  login,
+  signUp,
+  logout,
+  getAllFolders,
+  createFolder,
+  updateFolder,
+  deleteFolder,
+  getAllFiles,
+  createFile,
+  updateFile,
+  deleteFile,
+  uploadFileBytes,
+} from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -35,62 +50,15 @@ type ClipboardState = {
 
 export default function App() {
   // ----- Auth -----
-  // No backend yet, so this is backed by src/utils/localAuth.ts (localStorage)
-  // rather than a real API — see that file's header comment. It's a real,
-  // working sign up / sign in / sign out flow, just not one a server can see.
-// getSession() now makes a real network call (checking the session cookie
-// against the backend), so unlike before, we can't know synchronously on
-// first render whether the user is logged in — hence the extra loading state.
-const [isAuthenticated, setIsAuthenticated] = useState(false);
-const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-useEffect(() => {
-  getSession().then((session) => {
-    setIsAuthenticated(!!session);
-    setAuthChecked(true);
-  });
-}, []);
-
-// Once logged in, replace the (previously empty) local folder state with
-// the user's real folders from the backend. favoriteFolderIds/deletedFolderIds
-// are derived from each folder's isFavorite/deletedAt — the frontend still
-// tracks those as separate id lists, same as before, just now seeded from
-// real data instead of starting empty.
-useEffect(() => {
-  if (!isAuthenticated) return;
-  getAllFolders().then((apiFolders) => {
-    setFolders(
-      apiFolders.map((f) => ({
-        id: f.id,
-        name: f.name,
-        parentId: f.parentId,
-        files: 0,
-        size: "0 MB",
-      }))
-    );
-    setFavoriteFolderIds(apiFolders.filter((f) => f.isFavorite).map((f) => f.id));
-    setDeletedFolderIds(apiFolders.filter((f) => f.deletedAt).map((f) => f.id));
-
-    // Re-validate the folder trail restored from localStorage now that we
-    // have real data: drop any ids that no longer exist (renamed/deleted
-    // elsewhere), and refresh stale names.
-    setFolderStack((prevStack) => {
-      const byId = new Map(apiFolders.map((f) => [f.id, f]));
-      const rebuilt: { id: string; name: string }[] = [];
-      for (const entry of prevStack) {
-        const match = byId.get(entry.id);
-        if (!match) break; // trail broken here — stop, don't guess further
-        rebuilt.push({ id: match.id, name: match.name });
-      }
-      return rebuilt;
+  useEffect(() => {
+    getSession().then((session) => {
+      setIsAuthenticated(!!session);
+      setAuthChecked(true);
     });
-    setFolderStackRestored(true);
-  });
-}, [isAuthenticated]);
-
-/** TODO(backend): swap for a real POST /auth/login call once the backend exists. */
-
-
+  }, []);
 
   const handleLogin = async (payload: LoginPayload) => {
     await login(payload.email, payload.password);
@@ -212,39 +180,7 @@ useEffect(() => {
   const dragOccurred = useRef(false);
 
   // ----- Folder navigation -----
-  // Persisted to localStorage so a page refresh doesn't drop you back to the
-  // root and make nested folders "disappear" — they were never lost from the
-  // backend, the UI just forgot which folder it had drilled into. Once the
-  // real folder list comes back from the backend (see the getAllFolders
-  // effect below), we re-validate this against it in case a folder in the
-  // saved trail was renamed, moved, or deleted since the last visit.
-  const FOLDER_STACK_KEY = "skystorage:folderStack";
-  const [folderStack, setFolderStackState] = useState<{ id: string; name: string }[]>(() => {
-    try {
-      const raw = localStorage.getItem(FOLDER_STACK_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [folderStackRestored, setFolderStackRestored] = useState(false);
-
-  const setFolderStack = (
-    updater: { id: string; name: string }[] | ((prev: { id: string; name: string }[]) => { id: string; name: string }[])
-  ) => {
-    setFolderStackState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      try {
-        if (next.length) localStorage.setItem(FOLDER_STACK_KEY, JSON.stringify(next));
-        else localStorage.removeItem(FOLDER_STACK_KEY);
-      } catch {
-        // localStorage unavailable (private browsing, etc.) — navigation still
-        // works for this session, it just won't survive a refresh.
-      }
-      return next;
-    });
-  };
-
+  const [folderStack, setFolderStack] = useState<{ id: string; name: string }[]>([]);
   const currentFolderId = folderStack.length
     ? folderStack[folderStack.length - 1].id
     : null;
@@ -506,26 +442,30 @@ useEffect(() => {
   // ---------------------------------------------------------------------------
 
   const createNewFolder = async () => {
-    const siblings = folders.filter((f) => f.parentId === currentFolderId);
-    const existingNames = siblings.map((f) => f.name);
-    let base = "New folder";
-    let name = base;
-    let counter = 1;
-    while (existingNames.includes(name)) {
-      name = `${base} (${counter})`;
-      counter++;
+    try {
+      const siblings = folders.filter((f) => f.parentId === currentFolderId);
+      const existingNames = siblings.map((f) => f.name);
+      let base = "New folder";
+      let name = base;
+      let counter = 1;
+      while (existingNames.includes(name)) {
+        name = `${base} (${counter})`;
+        counter++;
+      }
+      const created = await createFolder(name, currentFolderId);
+      const newFolder = {
+        id: created.id,
+        name: created.name,
+        files: 0,
+        size: "0 MB",
+        parentId: created.parentId,
+      };
+      setFolders((prev) => [newFolder, ...prev]);
+      setEditingFolderId(newFolder.id);
+      setNewFolderId(newFolder.id);
+    } catch (err) {
+      console.error("Failed to create folder:", err);
     }
-    const created = await createFolder(name, currentFolderId);
-    const newFolder = {
-      id: created.id,
-      name: created.name,
-      files: 0,
-      size: "0 MB",
-      parentId: created.parentId,
-    };
-    setFolders((prev) => [newFolder, ...prev]);
-    setEditingFolderId(newFolder.id);
-    setNewFolderId(newFolder.id);
   };
 
   const renameFolder = async (id: string, newName: string) => {
@@ -631,8 +571,10 @@ useEffect(() => {
         folderId: currentFolderId,
       });
       fileId = created.id;
+      // Upload the actual file bytes through our backend proxy → Oracle
+      await uploadFileBytes(fileId, file);
     } catch (err) {
-      console.error("create file err:", err);
+      console.error("create/upload file err:", err);
     }
     const newFile = {
       id: fileId,
@@ -687,8 +629,10 @@ useEffect(() => {
           folderId: parentId,
         });
         fileId = createdFile.id;
+        // Upload the actual file bytes through our backend proxy → Oracle
+        await uploadFileBytes(fileId, file);
       } catch (err) {
-        console.error("create file upload err:", err);
+        console.error("create/upload file err:", err);
       }
 
       newFiles.push({
@@ -1116,24 +1060,19 @@ useEffect(() => {
   // ---------------------------------------------------------------------------
 
   if (!authChecked) {
-  return null; // brief blank screen while checking the session — swap for a spinner if you'd like
-}
+    return null;
+  }
 
-if (!isAuthenticated) {
-  return <AuthPage onLogin={handleLogin} onSignUp={handleSignUp} />;
-}
+  if (!isAuthenticated) {
+    return <AuthPage onLogin={handleLogin} onSignUp={handleSignUp} />;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         activeView={view}
         onNavigate={handleNavigate}
-        onSignOut={() => {
-          // TODO(backend): also invalidate the session/token server-side once auth exists
-          localLogout();
-          setIsAuthenticated(false);
-          setFolderStack([]); // clear the persisted trail so it can't leak into the next session
-        }}
+        onSignOut={handleSignOut}
       />
 
       <div
@@ -1541,12 +1480,7 @@ if (!isAuthenticated) {
       categories={categories}
       capMB={100}
       onNavigateSettings={openSettings}
-      onSignOut={() => {
-        // TODO(backend): also invalidate the session/token server-side once auth exists
-        localLogout();
-        setIsAuthenticated(false);
-        setFolderStack([]); // clear the persisted trail so it can't leak into the next session
-      }}
+      onSignOut={handleSignOut}
     />
   </div>
 )}
