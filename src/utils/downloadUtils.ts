@@ -1,26 +1,17 @@
 /**
  * downloadUtils.ts
  *
- * Frontend-only download handling — no backend involved.
+ * Download handling — fetches real bytes from the backend when available.
  *
- * Industry-standard approach for a frontend that doesn't yet have a backend:
- *   - When a file is uploaded, we keep a reference to the real browser `File`
- *     object (it's already in memory — the <input type="file"> gave it to us).
- *     We never need to re-fetch it; we just hand that Blob back to the browser
- *     via `URL.createObjectURL` when the user clicks Download.
- *   - If a file/folder somehow has no real Blob attached (e.g. seed/demo data
- *     that was never actually uploaded through the file input), we fall back
- *     to generating a small placeholder file from its metadata, so the button
- *     never just silently does nothing.
- *   - Multi-file / folder downloads are zipped client-side with JSZip and
- *     handed to the browser as a single .zip Blob.
- *
- * Once a real backend exists, swap `getFileBlob` to fetch from your file
- * storage endpoint instead (e.g. `await fetch(file.url).then(r => r.blob())`)
- * — every call site here stays the same.
+ * When a file has an `id` (i.e. it exists in the database / Oracle Storage),
+ * we fetch its bytes through our backend proxy route (GET /files/:id/download).
+ * If a file still has a local `blob` reference (just-uploaded in this session),
+ * we use that directly. The placeholder fallback only fires for files that
+ * have neither (e.g. seed/demo data).
  */
 
 import JSZip from "jszip"
+import { downloadFileBlob } from "./api"
 
 export type DownloadableFile = {
   id?: string
@@ -50,20 +41,28 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** Returns a real Blob for the file, or a generated placeholder if none was captured. */
-function getFileBlob(file: DownloadableFile): Blob {
+/** Returns a real Blob for the file — from backend if it has an id,
+ *  from the local reference if just-uploaded, or a placeholder as last resort. */
+async function getFileBlob(file: DownloadableFile): Promise<Blob> {
   if (file.blob) return file.blob
+  if (file.id) {
+    try {
+      return await downloadFileBlob(file.id)
+    } catch (err) {
+      console.error("download from backend failed, using placeholder:", err)
+    }
+  }
   const placeholder =
     `This is a placeholder for "${file.name}".\n` +
-    `No file content was captured for this item (it has no backend yet).\n\n` +
+    `No file content was captured for this item.\n\n` +
     `Size: ${file.size ?? "unknown"}\n` +
     `Last modified: ${file.lastModified ?? "unknown"}\n`
   return new Blob([placeholder], { type: "text/plain" })
 }
 
 /** Download a single file using its real content when available. */
-export function downloadSingleFile(file: DownloadableFile) {
-  const blob = getFileBlob(file)
+export async function downloadSingleFile(file: DownloadableFile) {
+  const blob = await getFileBlob(file)
   downloadBlob(blob, file.name)
 }
 
@@ -79,7 +78,7 @@ export async function downloadFilesAsZip(
   const zip = new JSZip()
 
   for (const { file, relativePath } of entries) {
-    const blob = getFileBlob(file)
+    const blob = await getFileBlob(file)
     const folder = relativePath ? zip.folder(relativePath) ?? zip : zip
     folder.file(file.name, blob)
   }

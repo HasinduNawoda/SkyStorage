@@ -76,3 +76,89 @@ export async function createFolder(name: string, parentId: string | null): Promi
     body: JSON.stringify({ name, parentId }),
   });
 }
+
+export async function updateFolder(
+  id: string,
+  data: { name?: string; parentId?: string | null; isFavorite?: boolean; deletedAt?: string | null }
+): Promise<ApiFolder> {
+  return apiFetch(`/folders/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  await apiFetch(`/folders/${id}`, { method: "DELETE" });
+}
+
+export type ApiFile = {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  folderId: string | null;
+  ownerId: string;
+  isFavorite: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getAllFiles(): Promise<ApiFile[]> {
+  return apiFetch("/files?all=true");
+}
+
+export async function createFile(data: {
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  folderId?: string | null;
+}): Promise<ApiFile & { storageKey: string; uploadUrl: string }> {
+  return apiFetch("/files", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateFile(
+  id: string,
+  data: { name?: string; folderId?: string | null; isFavorite?: boolean; deletedAt?: string | null }
+): Promise<ApiFile> {
+  return apiFetch(`/files/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteFile(id: string): Promise<void> {
+  await apiFetch(`/files/${id}`, { method: "DELETE" });
+}
+
+/** Upload raw file bytes to our backend proxy (which forwards to Oracle).
+ *  Uses application/octet-stream so express.raw() on the server can parse it. */
+export async function uploadFileBytes(fileId: string, file: File): Promise<void> {
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const res = await fetch(`${API_BASE}/files/${fileId}/upload`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: file,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Upload failed.");
+  }
+}
+
+/** Download file bytes from our backend proxy (which streams from Oracle). */
+export async function downloadFileBlob(fileId: string): Promise<Blob> {
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const res = await fetch(`${API_BASE}/files/${fileId}/download`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Download failed.");
+  }
+  return res.blob();
+}
