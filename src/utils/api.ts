@@ -170,6 +170,7 @@ export type ApiShare = {
   ownerId: string;
   sharedWith: string | null;
   role: string;
+  message: string | null;
   token: string;
   createdAt: string;
   file?: ApiFile;
@@ -177,7 +178,7 @@ export type ApiShare = {
   owner?: { name: string; email: string };
 };
 
-export async function createShare(data: { fileId?: string; folderId?: string; sharedWith?: string; role?: string }): Promise<ApiShare> {
+export async function createShare(data: { fileId?: string; folderId?: string; sharedWith?: string; role?: string; message?: string }): Promise<ApiShare> {
   return apiFetch("/shares", {
     method: "POST",
     body: JSON.stringify(data),

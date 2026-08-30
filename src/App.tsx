@@ -148,6 +148,7 @@ export default function App() {
             dateShared: new Date(s.createdAt).toLocaleDateString(),
             ownerName: "Me",
             ownerEmail: "",
+            message: s.message || undefined,
             people: [],
           });
         }
@@ -168,6 +169,7 @@ export default function App() {
             dateShared: new Date(s.createdAt).toLocaleDateString(),
             ownerName: "Me",
             ownerEmail: "",
+            message: s.message || undefined,
             people: [],
           });
         }
@@ -187,6 +189,7 @@ export default function App() {
           ownerName: s.owner?.name,
           ownerEmail: s.owner?.email,
           shareId: s.id,
+          message: s.message || undefined,
           people: s.owner ? [{ email: s.owner.email, role: "Owner" }] : [],
         })),
         ...Array.from(mySharedFilesMap.values())
@@ -204,6 +207,7 @@ export default function App() {
           ownerName: s.owner?.name,
           ownerEmail: s.owner?.email,
           shareId: s.id,
+          message: s.message || undefined,
           people: s.owner ? [{ email: s.owner.email, role: "Owner" }] : [],
         })),
         ...Array.from(mySharedFoldersMap.values())
@@ -751,7 +755,8 @@ export default function App() {
         await createShare({
           fileId: originalFile.id,
           sharedWith: person.email,
-          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer"
+          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer",
+          message: payload.message
         });
       }
 
@@ -875,7 +880,8 @@ export default function App() {
         await createShare({
           folderId: folderMeta.id,
           sharedWith: person.email,
-          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer"
+          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer",
+          message: payload.message
         });
       }
 
