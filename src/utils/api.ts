@@ -162,3 +162,36 @@ export async function downloadFileBlob(fileId: string): Promise<Blob> {
   }
   return res.blob();
 }
+
+export type ApiShare = {
+  id: string;
+  fileId: string | null;
+  folderId: string | null;
+  ownerId: string;
+  sharedWith: string | null;
+  role: string;
+  token: string;
+  createdAt: string;
+  file?: ApiFile;
+  folder?: ApiFolder;
+  owner?: { name: string; email: string };
+};
+
+export async function createShare(data: { fileId?: string; folderId?: string; sharedWith?: string; role?: string }): Promise<ApiShare> {
+  return apiFetch("/shares", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyShares(): Promise<ApiShare[]> {
+  return apiFetch("/shares/mine");
+}
+
+export async function getSharesWithMe(): Promise<ApiShare[]> {
+  return apiFetch("/shares/with-me");
+}
+
+export async function deleteShare(id: string): Promise<void> {
+  await apiFetch(`/shares/${id}`, { method: "DELETE" });
+}

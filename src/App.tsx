@@ -34,6 +34,8 @@ import {
   updateFile,
   deleteFile,
   uploadFileBytes,
+  createShare,
+  getSharesWithMe,
 } from "./utils/api";
 import { downloadSingleFile, downloadFilesAsZip, type DownloadableFile } from "./utils/downloadUtils";
 import { type FileSearchItem } from "./components/FileSearchBar";
@@ -74,12 +76,20 @@ export default function App() {
     await logout().catch(console.error);
     setIsAuthenticated(false);
     setFolderStack([]);
+    setFolders([]);
+    setFiles([]);
+    setSharedFiles([]);
+    setSharedFolders([]);
+    setFavorites([]);
+    setFavoriteFolderIds([]);
+    deleteFiles([]);
+    setDeletedFolderIds([]);
   };
 
   // Load folders & files from Postgres when authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
-    Promise.all([getAllFolders(), getAllFiles()]).then(([apiFolders, apiFiles]) => {
+    Promise.all([getAllFolders(), getAllFiles(), getSharesWithMe()]).then(([apiFolders, apiFiles, apiSharesWithMe]) => {
       setFolders(
         apiFolders.map((f) => ({
           id: f.id,
@@ -122,6 +132,37 @@ export default function App() {
           wasFavorite: f.isFavorite,
         }))
       );
+
+      // Populate sharedFiles with files shared WITH this user
+      setSharedFiles(
+        apiSharesWithMe.filter(s => s.file).map(s => ({
+          id: s.file!.id,
+          name: s.file!.name,
+          size: `${(s.file!.sizeBytes / (1024 * 1024)).toFixed(2)} MB`,
+          lastModified: new Date(s.file!.createdAt).toLocaleDateString(),
+          folderId: s.file!.folderId,
+          dateShared: new Date(s.createdAt).toLocaleDateString(),
+          ownerName: s.owner?.name,
+          ownerEmail: s.owner?.email,
+          shareId: s.id,
+        }))
+      );
+
+      // Populate sharedFolders with folders shared WITH this user
+      setSharedFolders(
+        apiSharesWithMe.filter(s => s.folder).map(s => ({
+          id: s.folder!.id,
+          name: s.folder!.name,
+          parentId: s.folder!.parentId,
+          files: 0,
+          size: "0 MB",
+          dateShared: new Date(s.createdAt).toLocaleDateString(),
+          ownerName: s.owner?.name,
+          ownerEmail: s.owner?.email,
+          shareId: s.id,
+        }))
+      );
+
     }).catch((err) => console.error("Data load error:", err));
   }, [isAuthenticated]);
 
@@ -654,23 +695,39 @@ export default function App() {
   // Share
   // ---------------------------------------------------------------------------
 
-  const handleShare = (payload: any) => {
+  const handleShare = async (payload: any) => {
     const originalFile = files.find((f) => f.name === payload.name);
     if (!originalFile) return;
-    const sharedFile = {
-      ...originalFile,
-      ...payload,
-      dateShared: formatDate(payload.dateShared),
-    };
-    setSharedFiles((prev) => {
-      const exists = prev.some((f) => f.name === payload.name);
-      return exists
-        ? prev.map((f) => (f.name === payload.name ? sharedFile : f))
-        : [...prev, sharedFile];
-    });
-    setFavorites((prev) =>
-      prev.map((f) => (f.name === payload.name ? { ...f, ...payload } : f))
-    );
+
+    try {
+      // Loop over the people array and create a share for each
+      for (const person of payload.people) {
+        await createShare({
+          fileId: originalFile.id,
+          sharedWith: person.email,
+          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer"
+        });
+      }
+
+      // Optimistically update the UI to show the user that their share succeeded
+      const sharedFile = {
+        ...originalFile,
+        ...payload,
+        dateShared: formatDate(payload.dateShared || new Date()),
+      };
+      setSharedFiles((prev) => {
+        const exists = prev.some((f) => f.name === payload.name);
+        return exists
+          ? prev.map((f) => (f.name === payload.name ? sharedFile : f))
+          : [...prev, sharedFile];
+      });
+      setFavorites((prev) =>
+        prev.map((f) => (f.name === payload.name ? { ...f, ...payload } : f))
+      );
+    } catch (err: any) {
+      console.error("share error:", err);
+      alert("Failed to share file: " + (err.message || "Unknown error"));
+    }
   };
 
   const getMergedFile = (file: any) => {
@@ -686,7 +743,7 @@ export default function App() {
     setFavorites((prev) =>
       isCurrentlyFav
         ? prev.filter((f) => f.name !== file.name)
-        : [...prev, file]
+        : [...prev, { ...file, isFavorite: true }]
     );
   };
 
@@ -762,27 +819,42 @@ export default function App() {
     setFolderShareTarget(folder);
   };
 
-  const handleFolderShareSubmit = (payload: any) => {
+  const handleFolderShareSubmit = async (payload: any) => {
     if (!folderShareTarget) return;
     const folderMeta = folders.find((f) => f.id === folderShareTarget.id);
-    const folderStats = folderMeta ? getFolderDisplayStats(folderMeta) : { files: 0, size: "0 MB" };
-    const sharedFolder = {
-      id: folderShareTarget.id,
-      name: folderShareTarget.name,
-      files: folderStats.files,
-      size: folderStats.size,
-      ...payload,
-      dateShared: formatDate(payload.dateShared),
-    };
-    setSharedFolders((prev) => {
-      const exists = prev.some((f) => f.id === folderShareTarget.id);
-      return exists
-        ? prev.map((f) => (f.id === folderShareTarget.id ? sharedFolder : f))
-        : [...prev, sharedFolder];
-    });
-    const descFiles = getDescendantFiles(folderShareTarget.id);
-    descFiles.forEach((f) => handleShare({ ...payload, name: f.name }));
-    setFolderShareTarget(null);
+    if (!folderMeta) return;
+
+    try {
+      for (const person of payload.people) {
+        await createShare({
+          folderId: folderMeta.id,
+          sharedWith: person.email,
+          role: person.role.toLowerCase() === "editor" ? "editor" : "viewer"
+        });
+      }
+
+      const folderStats = getFolderDisplayStats(folderMeta);
+      const sharedFolder = {
+        id: folderShareTarget.id,
+        name: folderShareTarget.name,
+        files: folderStats.files,
+        size: folderStats.size,
+        ...payload,
+        dateShared: formatDate(payload.dateShared || new Date()),
+      };
+      setSharedFolders((prev) => {
+        const exists = prev.some((f) => f.id === folderShareTarget.id);
+        return exists
+          ? prev.map((f) => (f.id === folderShareTarget.id ? sharedFolder : f))
+          : [...prev, sharedFolder];
+      });
+      const descFiles = getDescendantFiles(folderShareTarget.id);
+      descFiles.forEach((f) => handleShare({ ...payload, name: f.name }));
+      setFolderShareTarget(null);
+    } catch (err: any) {
+      console.error("share folder error:", err);
+      alert("Failed to share folder: " + (err.message || "Unknown error"));
+    }
   };
 
   // ---------------------------------------------------------------------------
