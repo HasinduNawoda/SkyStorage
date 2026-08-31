@@ -1298,9 +1298,7 @@ export default function App() {
             onCancelFileEdit={cancelFileEdit}
             onRequestRenameFile={requestRenameFile}
             onCutFile={cutFile}
-            onCopyFile={copyFile}
-          />
-        ) : (
+            onCopyFile={copyFile} onDownloadFile={downloadSingleFile} isFavoriteFolder={(id) => favoriteFolderIds.includes(id)} onToggleFavoriteFolder={toggleFavoriteFolder} onToggleDeleteFolder={toggleDeleteFolder} onShareFolder={handleShareFolder} onDownloadFolder={downloadFolder} /> ) : (
           <>
             {view === "dashboard" && (
               <>
@@ -1705,3 +1703,5 @@ export default function App() {
     </div>
   );
 }
+
+

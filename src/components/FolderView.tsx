@@ -27,6 +27,14 @@ type Props = {
   onRequestRenameFile: (name: string) => void;
   onCutFile?: (file: any) => void;
   onCopyFile?: (file: any) => void;
+  onDownloadFile?: (file: any) => void;
+  
+  // Folder actions
+  isFavoriteFolder?: (id: string) => boolean;
+  onToggleFavoriteFolder?: (folder: any) => void;
+  onToggleDeleteFolder?: (folder: any) => void;
+  onShareFolder?: (folder: any) => void;
+  onDownloadFolder?: (folder: any) => void;
 };
 
 export default function FolderView({
@@ -54,6 +62,12 @@ export default function FolderView({
   onRequestRenameFile,
   onCutFile,
   onCopyFile,
+  onDownloadFile,
+  isFavoriteFolder,
+  onToggleFavoriteFolder,
+  onToggleDeleteFolder,
+  onShareFolder,
+  onDownloadFolder,
 }: Props) {
   return (
     <>
@@ -89,6 +103,12 @@ export default function FolderView({
               onCopy={() => onCopyFolder?.(f)}
               onPaste={() => onPasteIntoFolder?.(f.id)}
               canPaste={isPasteValidForFolder ? isPasteValidForFolder(f.id) : false}
+              isFavorite={isFavoriteFolder ? isFavoriteFolder(f.id) : false}
+              isDeleted={false}
+              onToggleFavorite={onToggleFavoriteFolder ? () => onToggleFavoriteFolder(f) : undefined}
+              onToggleDelete={onToggleDeleteFolder ? () => onToggleDeleteFolder(f) : undefined}
+              onShare={onShareFolder ? () => onShareFolder(f) : undefined}
+              onDownload={onDownloadFolder ? () => onDownloadFolder(f) : undefined}
             />
           ))}
         </div>
@@ -121,6 +141,7 @@ export default function FolderView({
                 isDeleted={deletedFiles.some(f => f.name === file.name)}
                 onToggleDelete={() => onToggleDelete(file)}
                 onShare={onShare}
+                onDownload={() => onDownloadFile?.(file)}
                 isEditing={editingFileName === file.name}
                 onRename={(newName) => onRenameFile(file.name, newName)}
                 onCancelEdit={onCancelFileEdit}
