@@ -1021,6 +1021,35 @@ export default function App() {
   const { totalMB, categories } = computeStorageStats([...files, ...deletedFiles]);
 
 
+
+
+  const midSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleOverlaySelectionChange = useCallback(
+    (folderIds: string[], fileIds: string[]) => {
+      setSelectedFolderIds(folderIds);
+      setSelectedFileIds(fileIds);
+    },
+    []
+  );
+
+  // ---------------------------------------------------------------------------
+  // Derived data for pages
+  // ---------------------------------------------------------------------------
+
+  const favoriteFolders = folders
+    .filter((f) => favoriteFolderIds.includes(f.id))
+    .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
+
+  const deletedFolders = folders
+    .filter((f) => deletedFolderIds.includes(f.id))
+    .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
+
+  // ---------------------------------------------------------------------------
+  // Whether the currently visible view has any files or folders that could be
+  // selected. Used to disable "Select items" in the right-click menu when the
+  // view is empty.
+  // ---------------------------------------------------------------------------
   // Build the item list for SelectionOverlay — adapts to the current view
   const overlayItems = (() => {
     let viewFolders: any[] = [];
@@ -1053,33 +1082,6 @@ export default function App() {
     ];
   })();
 
-  const midSectionRef = useRef<HTMLDivElement>(null);
-
-  const handleOverlaySelectionChange = useCallback(
-    (folderIds: string[], fileIds: string[]) => {
-      setSelectedFolderIds(folderIds);
-      setSelectedFileIds(fileIds);
-    },
-    []
-  );
-
-  // ---------------------------------------------------------------------------
-  // Derived data for pages
-  // ---------------------------------------------------------------------------
-
-  const favoriteFolders = folders
-    .filter((f) => favoriteFolderIds.includes(f.id))
-    .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
-
-  const deletedFolders = folders
-    .filter((f) => deletedFolderIds.includes(f.id))
-    .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
-
-  // ---------------------------------------------------------------------------
-  // Whether the currently visible view has any files or folders that could be
-  // selected. Used to disable "Select items" in the right-click menu when the
-  // view is empty.
-  // ---------------------------------------------------------------------------
   const hasSelectableItems = currentFolderId
     ? folders.some((f) => f.parentId === currentFolderId) ||
       files
@@ -1732,6 +1734,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
