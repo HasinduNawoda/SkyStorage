@@ -68,6 +68,8 @@ type Props = {
   selectedFileIds?: string[];
   onToggleSelectFolder?: (id: string) => void;
   onToggleSelectFile?: (id: string) => void;
+  onBulkRightClick?: (x: number, y: number) => void;
+  selectedCount?: number;
 };
 
 export default function FolderAndFilesPage({
@@ -109,6 +111,8 @@ export default function FolderAndFilesPage({
   selectedFileIds = [],
   onToggleSelectFolder,
   onToggleSelectFile,
+  onBulkRightClick,
+  selectedCount = 0,
 }: Props) {
   return (
     <div>
@@ -150,6 +154,8 @@ export default function FolderAndFilesPage({
                 selectMode={selectMode}
                 isSelected={selectedFolderIds.includes(f.id)}
                 onToggleSelect={() => onToggleSelectFolder?.(f.id)}
+                onBulkRightClick={onBulkRightClick}
+                selectedCount={selectedCount}
               />
             ))}
           </div>
@@ -192,6 +198,8 @@ export default function FolderAndFilesPage({
                   selectMode={selectMode}
                   isSelected={selectedFileIds.includes(file.id ?? file.name)}
                   onToggleSelect={() => onToggleSelectFile?.(file.id ?? file.name)}
+                  onBulkRightClick={onBulkRightClick}
+                  selectedCount={selectedCount}
                 />
               ))}
             </tbody>

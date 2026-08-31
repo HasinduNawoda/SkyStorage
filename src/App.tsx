@@ -1021,14 +1021,37 @@ export default function App() {
   const { totalMB, categories } = computeStorageStats([...files, ...deletedFiles]);
 
 
-  // Build the item list for SelectionOverlay (only used in dashboard main grid for now)
-  const overlayItems = [
-    ...rootFolders.map((f) => ({ domId: `folder-card-${f.id}`, folderId: f.id })),
-    ...activeRootFiles.map((f) => ({
-      domId: `file-row-${f.id ?? f.name}`,
-      fileId: f.id ?? f.name,
-    })),
-  ];
+  // Build the item list for SelectionOverlay — adapts to the current view
+  const overlayItems = (() => {
+    let viewFolders: any[] = [];
+    let viewFiles: any[] = [];
+
+    if (view === "dashboard" && !currentFolderId) {
+      viewFolders = rootFolders;
+      viewFiles = activeRootFiles;
+    } else if (view === "deletedFiles") {
+      viewFolders = deletedFolders.filter(
+        (f) => f.parentId === null || !deletedFolderIds.includes(f.parentId)
+      );
+      viewFiles = deletedFiles.filter(
+        (f) => f.folderId === null || !deletedFolderIds.includes(f.folderId)
+      );
+    } else if (view === "favorites") {
+      viewFolders = folders.filter((f) => favoriteFolderIds.includes(f.id));
+      viewFiles = favorites.filter((f) => !deletedFiles.some((d) => d.name === f.name));
+    } else if (view === "shared") {
+      viewFolders = sharedFolders;
+      viewFiles = sharedFiles.filter((f) => !deletedFiles.some((d) => d.name === f.name));
+    }
+
+    return [
+      ...viewFolders.map((f: any) => ({ domId: `folder-card-${f.id}`, folderId: f.id })),
+      ...viewFiles.map((f: any) => ({
+        domId: `file-row-${f.id ?? f.name}`,
+        fileId: f.id ?? f.name,
+      })),
+    ];
+  })();
 
   const midSectionRef = useRef<HTMLDivElement>(null);
 
@@ -1495,6 +1518,8 @@ export default function App() {
                 selectedFileIds={selectedFileIds}
                 onToggleSelectFolder={toggleSelectFolder}
                 onToggleSelectFile={toggleSelectFile}
+                onBulkRightClick={handleBulkRightClick}
+                selectedCount={totalSelected}
               />
             )}
 
@@ -1539,6 +1564,8 @@ export default function App() {
                 selectedFileIds={selectedFileIds}
                 onToggleSelectFolder={toggleSelectFolder}
                 onToggleSelectFile={toggleSelectFile}
+                onBulkRightClick={handleBulkRightClick}
+                selectedCount={totalSelected}
               />
             )}
 
@@ -1579,6 +1606,8 @@ export default function App() {
                 selectedFileIds={selectedFileIds}
                 onToggleSelectFolder={toggleSelectFolder}
                 onToggleSelectFile={toggleSelectFile}
+                onBulkRightClick={handleBulkRightClick}
+                selectedCount={totalSelected}
               />
             )}
 
@@ -1689,8 +1718,8 @@ export default function App() {
         }}
       />
 
-      {/* Marquee selection overlay – only active in dashboard, non-folder view */}
-      {view === "dashboard" && !currentFolderId && (
+      {/* Marquee selection overlay — active in dashboard, recycle bin, favorites, shared */}
+      {["dashboard", "deletedFiles", "favorites", "shared"].includes(view) && !currentFolderId && (
         <SelectionOverlay
           containerRef={midSectionRef as React.RefObject<HTMLElement>}
           items={overlayItems}
