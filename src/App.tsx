@@ -1694,6 +1694,12 @@ export default function App() {
         openAt={bulkMenu}
         onClose={() => setBulkMenu(null)}
         selectionCount={totalSelected}
+        isRecycleBin={view === "deletedFiles"}
+        onRestore={() => {
+          setBulkMenu(null);
+          // toggleDeleteFolder handles restoring in the backend + frontend state
+          handleBulkDelete();
+        }}
         onDownload={() => {
           setBulkMenu(null);
           downloadSelection();
