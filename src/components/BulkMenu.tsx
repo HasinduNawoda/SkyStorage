@@ -16,6 +16,8 @@ type BulkMenuProps = {
   onCopy: () => void
   onCut: () => void
   onShare: () => void
+  onRestore?: () => void
+  isRecycleBin?: boolean
 
   /** Controlled position-trigger mode – coordinates of the right-click. */
   openAt: { x: number; y: number } | null
@@ -30,6 +32,8 @@ function BulkMenuContent({
   onCopy,
   onCut,
   onShare,
+  onRestore,
+  isRecycleBin,
 }: Omit<BulkMenuProps, "openAt" | "onClose">) {
   return (
     <Menu.Content minW="52">
@@ -38,39 +42,48 @@ function BulkMenuContent({
         {selectionCount} item{selectionCount !== 1 ? "s" : ""} selected
       </div>
 
-      <Menu.Item value="download" onClick={onDownload} gap="2">
-        <img src={download} className="w-4 h-4 opacity-70" />
-        <span>Download</span>
-      </Menu.Item>
+      {!isRecycleBin && (
+        <Menu.Item value="download" onClick={onDownload} gap="2">
+          <img src={download} className="w-4 h-4 opacity-70" />
+          <span>Download</span>
+        </Menu.Item>
+      )}
 
-      <Menu.Item value="delete" onClick={onDelete} gap="2">
+      {isRecycleBin && onRestore && (
+        <Menu.Item value="restore" onClick={onRestore} gap="2">
+          {/* using download icon as a placeholder for restore if none available, or just omit icon */}
+          <span className="ml-6">Restore</span>
+        </Menu.Item>
+      )}
+
+      <Menu.Item value="delete" onClick={onDelete} gap="2" color="red.500">
         <img src={trash} className="w-4 h-4 opacity-70" />
-        <span>Delete</span>
+        <span>{isRecycleBin ? "Permanently Delete" : "Delete"}</span>
       </Menu.Item>
 
-      <Menu.Item value="favorite" onClick={onFavorite} gap="2">
-        <img src={star} className="w-4 h-4 opacity-70" />
-        <span>Add to Favorites</span>
-      </Menu.Item>
+      {!isRecycleBin && (
+        <>
+          <Menu.Item value="favorite" onClick={onFavorite} gap="2">
+            <img src={star} className="w-4 h-4 opacity-70" />
+            <span>Favorite</span>
+          </Menu.Item>
 
-      <Menu.Separator />
+          <Menu.Item value="copy" onClick={onCopy} gap="2">
+            <img src={copy} className="w-4 h-4 opacity-70" />
+            <span>Copy</span>
+          </Menu.Item>
 
-      <Menu.Item value="copy" onClick={onCopy} gap="2">
-        <img src={copy} className="w-4 h-4 opacity-80" />
-        <span>Copy</span>
-      </Menu.Item>
+          <Menu.Item value="cut" onClick={onCut} gap="2">
+            <img src={cut} className="w-4 h-4 opacity-70" />
+            <span>Cut</span>
+          </Menu.Item>
 
-      <Menu.Item value="cut" onClick={onCut} gap="2">
-        <img src={cut} className="w-4 h-4 opacity-80" />
-        <span>Cut</span>
-      </Menu.Item>
-
-      <Menu.Separator />
-
-      <Menu.Item value="share" onClick={onShare} gap="2">
-        <img src={share} className="w-4 h-4 opacity-70" />
-        <span>Share</span>
-      </Menu.Item>
+          <Menu.Item value="share" onClick={onShare} gap="2">
+            <img src={share} className="w-4 h-4 opacity-70" />
+            <span>Share</span>
+          </Menu.Item>
+        </>
+      )}
     </Menu.Content>
   )
 }

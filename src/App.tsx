@@ -955,6 +955,30 @@ export default function App() {
     exitSelectMode();
   };
 
+  const handleBulkPermanentDelete = async () => {
+    // Permanent delete for folders
+    for (const id of selectedFolderIds) {
+      try {
+        await deleteFolder(id);
+        setFolders((prev) => prev.filter((f) => f.id !== id));
+        setDeletedFolderIds((prev) => prev.filter((fid) => fid !== id));
+      } catch (e) {
+        console.error("bulk delete folder err:", e);
+      }
+    }
+    // Permanent delete for files
+    for (const id of selectedFileIds) {
+      try {
+        await deleteFile(id);
+        setFiles((prev) => prev.filter((f) => (f.id ?? f.name) !== id));
+        deleteFiles((prev) => prev.filter((f) => (f.id ?? f.name) !== id));
+      } catch (e) {
+        console.error("bulk delete file err:", e);
+      }
+    }
+    exitSelectMode();
+  };
+
   const handleBulkFavorite = () => {
     selectedFolderIds.forEach((id) => {
       const f = folders.find((fo) => fo.id === id);
@@ -1023,8 +1047,8 @@ export default function App() {
 
   // Build the item list for SelectionOverlay (only used in dashboard main grid for now)
   const overlayItems = [
-    ...rootFolders.map((f) => ({ domId: `folder-card-${f.id}`, folderId: f.id })),
-    ...activeRootFiles.map((f) => ({
+    ...rootFolders.slice(0, 4).map((f) => ({ domId: `folder-card-${f.id}`, folderId: f.id })),
+    ...activeRootFiles.slice(0, 4).map((f) => ({
       domId: `file-row-${f.id ?? f.name}`,
       fileId: f.id ?? f.name,
     })),
@@ -1318,7 +1342,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-4 gap-6 mb-16">
-                  {rootFolders.map((f) => {
+                  {rootFolders.slice(0, 4).map((f) => {
                     const stats = getFolderDisplayStats(f);
                     return (
                       <FolderCard
@@ -1364,7 +1388,6 @@ export default function App() {
                     }`}
                     onClick={() => {
                       if (rootFiles.length === 0) return;
-                      if (activeRootFiles.length === 0) return setView("deletedFiles");
                       setView("files");
                     }}
                     disabled={rootFiles.length === 0}
@@ -1667,10 +1690,7 @@ export default function App() {
           setBulkMenu(null);
           downloadSelection();
         }}
-        onDelete={() => {
-          setBulkMenu(null);
-          handleBulkDelete();
-        }}
+        isRecycleBin={view === "deletedFiles"} onRestore={() => { setBulkMenu(null); handleBulkDelete(); }} onDelete={() => { setBulkMenu(null); if (view === "deletedFiles") { handleBulkPermanentDelete(); } else { handleBulkDelete(); } }}
         onFavorite={() => {
           setBulkMenu(null);
           handleBulkFavorite();
@@ -1703,6 +1723,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 
 
