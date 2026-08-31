@@ -1272,7 +1272,7 @@ export default function App() {
           <FolderView
             folderName={folderStack[folderStack.length - 1].name}
             folders={folders
-              .filter((f) => f.parentId === currentFolderId)
+              .filter((f) => f.parentId === currentFolderId && !deletedFolderIds.includes(f.id))
               .map((f) => ({ ...f, ...getFolderDisplayStats(f) }))}
             files={files
               .filter((f) => f.folderId === currentFolderId)
@@ -1298,7 +1298,7 @@ export default function App() {
             onCancelFileEdit={cancelFileEdit}
             onRequestRenameFile={requestRenameFile}
             onCutFile={cutFile}
-            onCopyFile={copyFile} onDownloadFile={downloadSingleFile} isFavoriteFolder={(id) => favoriteFolderIds.includes(id)} onToggleFavoriteFolder={toggleFavoriteFolder} onToggleDeleteFolder={toggleDeleteFolder} onShareFolder={handleShareFolder} onDownloadFolder={downloadFolder} /> ) : (
+            onCopyFile={copyFile} onDownloadFile={downloadSingleFile} isFavoriteFolder={(id) => favoriteFolderIds.includes(id)} isDeletedFolder={(id) => deletedFolderIds.includes(id)} onToggleFavoriteFolder={toggleFavoriteFolder} onToggleDeleteFolder={toggleDeleteFolder} onShareFolder={handleShareFolder} onDownloadFolder={downloadFolder} /> ) : (
           <>
             {view === "dashboard" && (
               <>
@@ -1703,5 +1703,6 @@ export default function App() {
     </div>
   );
 }
+
 
 

@@ -31,6 +31,7 @@ type Props = {
   
   // Folder actions
   isFavoriteFolder?: (id: string) => boolean;
+  isDeletedFolder?: (id: string) => boolean;
   onToggleFavoriteFolder?: (folder: any) => void;
   onToggleDeleteFolder?: (folder: any) => void;
   onShareFolder?: (folder: any) => void;
@@ -64,6 +65,7 @@ export default function FolderView({
   onCopyFile,
   onDownloadFile,
   isFavoriteFolder,
+  isDeletedFolder,
   onToggleFavoriteFolder,
   onToggleDeleteFolder,
   onShareFolder,
@@ -104,7 +106,7 @@ export default function FolderView({
               onPaste={() => onPasteIntoFolder?.(f.id)}
               canPaste={isPasteValidForFolder ? isPasteValidForFolder(f.id) : false}
               isFavorite={isFavoriteFolder ? isFavoriteFolder(f.id) : false}
-              isDeleted={false}
+              isDeleted={isDeletedFolder ? isDeletedFolder(f.id) : false}
               onToggleFavorite={onToggleFavoriteFolder ? () => onToggleFavoriteFolder(f) : undefined}
               onToggleDelete={onToggleDeleteFolder ? () => onToggleDeleteFolder(f) : undefined}
               onShare={onShareFolder ? () => onShareFolder(f) : undefined}
