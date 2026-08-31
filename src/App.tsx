@@ -1343,7 +1343,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-4 gap-6 mb-16">
-                  {rootFolders.map((f) => {
+                  {rootFolders.slice(0, 4).map((f) => {
                     const stats = getFolderDisplayStats(f);
                     return (
                       <FolderCard

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import FolderCard from "./FolderCard";
 import FileTable from "./FileTable";
 import back from "../assets/icons/back-button.png"
@@ -114,6 +115,12 @@ export default function FolderAndFilesPage({
   onBulkRightClick,
   selectedCount = 0,
 }: Props) {
+  const [showAllFolders, setShowAllFolders] = useState(false);
+  const [showAllFiles, setShowAllFiles] = useState(false);
+
+  const displayedFolders = showAllFolders ? folders : folders.slice(0, 4);
+  const displayedFiles = showAllFiles ? files : files.slice(0, 4);
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
@@ -125,9 +132,18 @@ export default function FolderAndFilesPage({
 
       {folders.length > 0 && (
         <>
-          <h3 className="text-lg font-semibold mb-3">Folders</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Folders</h3>
+            <button
+              className={`text-sm font-medium ${folders.length <= 4 ? "text-gray-400" : "text-blue-600"}`}
+              onClick={() => setShowAllFolders(!showAllFolders)}
+              disabled={folders.length <= 4}
+            >
+              {showAllFolders ? "View Less" : "View All"}
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-6 mb-10">
-            {folders.map((f) => (
+            {displayedFolders.map((f) => (
               <FolderCard
                 key={f.id}
                 id={f.id}
@@ -164,7 +180,16 @@ export default function FolderAndFilesPage({
 
       {files.length > 0 && (
         <>
-          <h3 className="text-lg font-semibold mb-3">Files</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Files</h3>
+            <button
+              className={`text-sm font-medium ${files.length <= 4 ? "text-gray-400" : "text-blue-600"}`}
+              onClick={() => setShowAllFiles(!showAllFiles)}
+              disabled={files.length <= 4}
+            >
+              {showAllFiles ? "View Less" : "View All"}
+            </button>
+          </div>
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-700 text-white">
               <tr>
@@ -177,7 +202,7 @@ export default function FolderAndFilesPage({
               </tr>
             </thead>
             <tbody>
-              {files.map((file) => (
+              {displayedFiles.map((file) => (
                 <FileTable
                   key={file.id ?? file.name}
                   {...file}
