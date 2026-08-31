@@ -1,4 +1,4 @@
-import { Group, Menu, Portal } from "@chakra-ui/react"
+import { useEffect, useRef } from "react"
 import cut from "../assets/icons/cut.png"
 import copy from "../assets/icons/copy.png"
 import paste from "../assets/icons/paste.png"
@@ -34,85 +34,119 @@ export default function ContextMenu({
   canPaste,
   hasSelectableItems,
 }: ContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close when clicking outside
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    // Use a timeout so the current right-click event doesn't immediately close it
+    const id = setTimeout(() => {
+      document.addEventListener("mousedown", handler)
+    }, 0)
+    return () => {
+      clearTimeout(id)
+      document.removeEventListener("mousedown", handler)
+    }
+  }, [open, onClose])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  // Clamp to viewport
+  const menuWidth = 210
+  const menuHeight = 280
+  const clampedX = Math.min(x, window.innerWidth - menuWidth - 8)
+  const clampedY = Math.min(y, window.innerHeight - menuHeight - 8)
+
   const clipboardItems = [
-    { label: "Cut", value: "cut", icon: cut, onClick: undefined, disabled: true },
-    { label: "Copy", value: "copy", icon: copy, onClick: undefined, disabled: true },
-    { label: "Paste", value: "paste", icon: paste, onClick: onPaste, disabled: !canPaste },
+    { label: "Cut", icon: cut, onClick: undefined as (() => void) | undefined, disabled: true },
+    { label: "Copy", icon: copy, onClick: undefined as (() => void) | undefined, disabled: true },
+    { label: "Paste", icon: paste, onClick: onPaste, disabled: !canPaste },
   ]
 
+  const handleAction = (action?: () => void) => {
+    if (!action) return
+    onClose()
+    action()
+  }
+
   return (
-    <Menu.Root
-      open={open}
-      onOpenChange={(d) => {
-        if (!d.open) onClose()
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        top: clampedY,
+        left: clampedX,
+        zIndex: 9999,
       }}
+      className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
     >
-      {/* Invisible anchor positioned at the click coordinates */}
-      <Menu.Trigger asChild>
-        <div
-          style={{
-            position: "fixed",
-            top: y,
-            left: x,
-            width: 1,
-            height: 1,
-          }}
-        />
-      </Menu.Trigger>
-      <Portal>
-        <Menu.Positioner>
-          <Menu.Content minW="48">
-            <Group grow gap="0">
-              {clipboardItems.map((item) => (
-                <Menu.Item
-                  key={item.value}
-                  value={item.value}
-                  onClick={item.onClick}
-                  disabled={item.disabled}
-                  width="14"
-                  gap="1"
-                  flexDirection="column"
-                  justifyContent="center"
-                >
-                  <img
-                    src={item.icon}
-                    className={`w-4 h-4 ${item.disabled ? "opacity-30" : "opacity-80"}`}
-                  />
-                  <span className="text-xs">{item.label}</span>
-                </Menu.Item>
-              ))}
-            </Group>
+      {/* Clipboard row */}
+      <div className="flex items-center justify-around px-2 py-1.5 border-b border-gray-100">
+        {clipboardItems.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => handleAction(item.onClick)}
+            disabled={item.disabled}
+            className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors ${
+              item.disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
+          >
+            <img src={item.icon} className="w-4 h-4" />
+            <span className="text-xs text-gray-600">{item.label}</span>
+          </button>
+        ))}
+      </div>
 
-            <Menu.Separator />
+      {/* Action items */}
+      <button
+        onClick={() => handleAction(onUploadFile)}
+        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+      >
+        Upload file
+      </button>
+      <button
+        onClick={() => handleAction(onUploadFolder)}
+        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+      >
+        Upload folder
+      </button>
 
-            <Menu.Item value="upload-file" onClick={onUploadFile}>
-              Upload file
-            </Menu.Item>
-            <Menu.Item value="upload-folder" onClick={onUploadFolder}>
-              Upload folder
-            </Menu.Item>
+      <div className="border-t border-gray-100 my-0.5" />
 
-            <Menu.Separator />
-
-            {/* Only show "Select items" when not already in select mode.
-                Exiting select mode is handled by the dedicated banner button,
-                not buried in this menu anymore. Disabled when the current
-                view has no files or folders to select. */}
-            {!isSelectModeActive && (
-              <Menu.Item
-                value="select-items"
-                onClick={onSelectItems}
-                disabled={!hasSelectableItems}
-              >
-                Select items
-              </Menu.Item>
-            )}
-            <Menu.Item value="create-folder" onClick={onCreateNewFolder}>
-              Create new folder
-            </Menu.Item>
-          </Menu.Content>
-        </Menu.Positioner>
-      </Portal>
-    </Menu.Root>
+      {!isSelectModeActive && (
+        <button
+          onClick={() => handleAction(onSelectItems)}
+          disabled={!hasSelectableItems}
+          className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+            hasSelectableItems
+              ? "text-gray-700 hover:bg-gray-100 cursor-pointer"
+              : "text-gray-300 cursor-not-allowed"
+          }`}
+        >
+          Select items
+        </button>
+      )}
+      <button
+        onClick={() => handleAction(onCreateNewFolder)}
+        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+      >
+        Create new folder
+      </button>
+    </div>
   )
 }
