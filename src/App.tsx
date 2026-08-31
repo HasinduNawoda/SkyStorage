@@ -1038,7 +1038,7 @@ export default function App() {
   // ---------------------------------------------------------------------------
 
   const favoriteFolders = folders
-    .filter((f) => favoriteFolderIds.includes(f.id))
+    .filter((f) => favoriteFolderIds.includes(f.id) && !deletedFolderIds.includes(f.id))
     .map((f) => ({ ...f, ...getFolderDisplayStats(f) }));
 
   const deletedFolders = folders
@@ -1066,10 +1066,10 @@ export default function App() {
         (f) => f.folderId === null || !deletedFolderIds.includes(f.folderId)
       );
     } else if (view === "favorites") {
-      viewFolders = folders.filter((f) => favoriteFolderIds.includes(f.id));
+      viewFolders = folders.filter((f) => favoriteFolderIds.includes(f.id) && !deletedFolderIds.includes(f.id));
       viewFiles = favorites.filter((f) => !deletedFiles.some((d) => d.name === f.name));
     } else if (view === "shared") {
-      viewFolders = sharedFolders;
+        viewFolders = sharedFolders.filter(f => !deletedFolderIds.includes(f.id));
       viewFiles = sharedFiles.filter((f) => !deletedFiles.some((d) => d.name === f.name));
     }
 
@@ -1528,7 +1528,7 @@ export default function App() {
             {view === "shared" && (
               <FolderAndFilesPage
                 title="Shared"
-                folders={sharedFolders}
+                folders={sharedFolders.filter(f => !deletedFolderIds.includes(f.id))}
                 files={sharedFiles.filter(
                   (f) => !deletedFiles.some((d) => d.name === f.name)
                 )}
@@ -1740,6 +1740,8 @@ export default function App() {
     </div>
   );
 }
+
+
 
 
 
