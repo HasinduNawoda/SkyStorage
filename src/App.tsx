@@ -1202,7 +1202,7 @@ export default function App() {
       <div
         ref={midSectionRef as React.RefObject<HTMLDivElement>}
         className="flex-1 overflow-y-auto scrollbar-hide p-6 bg-[#FAFAFA]"
-        onContextMenu={view !== "settings" ? handleMidSectionContextMenu : undefined}
+        onContextMenu={view !== "settings" ? handleMidSectionContextMenu : undefined} onMouseDown={() => { dragOccurred.current = false }}
       >
         {view !== "settings" && (
           <TopBar
@@ -1703,6 +1703,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
