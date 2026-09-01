@@ -860,6 +860,8 @@ export default function App() {
       if (!res.ok) throw new Error("Failed to empty recycle bin");
       setFiles((prev) => prev.filter(f => !items.files.includes(f.id!)));
       setFolders((prev) => prev.filter(f => !items.folders.includes(f.id)));
+      deleteFiles([]);
+      setDeletedFolderIds([]);
       setSelectMode(false);
       setSelectedFileIds([]);
       setSelectedFolderIds([]);
