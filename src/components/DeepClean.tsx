@@ -172,9 +172,9 @@ export default function DeepClean({ onBack }: Props) {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={onBack}
-            className="w-10 h-10 rounded-full hover:bg-gray-200 transition flex items-center justify-center shrink-0"
+            className="text-sm text-blue-600 font-medium shrink-0 hover:opacity-80 transition-opacity"
           >
-            <img src={back} alt="Back" className="w-5 h-5" />
+            <img src={back} alt="Back" className="w-12 h-12" />
           </button>
           <div className="flex flex-col">
             <h1 className="text-3xl font-bold text-gray-900">Deep Clean</h1>

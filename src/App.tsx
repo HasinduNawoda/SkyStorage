@@ -845,6 +845,29 @@ export default function App() {
     }
   };
 
+  const emptyRecycleBin = async () => {
+    try {
+      const items = {
+        files: deletedFiles.map(f => f.id).filter(Boolean),
+        folders: deletedFolderIds
+      };
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/deepclean/clean`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ category: "recycle", items })
+      });
+      if (!res.ok) throw new Error("Failed to empty recycle bin");
+      setFiles((prev) => prev.filter(f => !items.files.includes(f.id!)));
+      setFolders((prev) => prev.filter(f => !items.folders.includes(f.id)));
+      setSelectMode(false);
+      setSelectedFileIds([]);
+      setSelectedFolderIds([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const toggleDeleteFolder = async (folder: { id: string; name: string }) => {
     const isCurrentlyDeleted = deletedFolderIds.includes(folder.id);
     const newDeletedAt = isCurrentlyDeleted ? null : new Date().toISOString();
@@ -1582,6 +1605,7 @@ export default function App() {
                   (f) => f.folderId === null || !deletedFolderIds.includes(f.folderId)
                 )}
                 onBack={() => setView("dashboard")}
+                onEmptyRecycleBin={emptyRecycleBin}
                 editingFolderId={editingFolderId}
                 onRenameFolder={renameFolder}
                 onCancelFolderEdit={cancelFolderEdit}

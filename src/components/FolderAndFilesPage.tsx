@@ -71,6 +71,7 @@ type Props = {
   onToggleSelectFile?: (id: string) => void;
   onBulkRightClick?: (x: number, y: number) => void;
   selectedCount?: number;
+  onEmptyRecycleBin?: () => void;
 };
 
 export default function FolderAndFilesPage({
@@ -114,6 +115,7 @@ export default function FolderAndFilesPage({
   onToggleSelectFile,
   onBulkRightClick,
   selectedCount = 0,
+  onEmptyRecycleBin,
 }: Props) {
   const [showAllFolders, setShowAllFolders] = useState(false);
   const [showAllFiles, setShowAllFiles] = useState(false);
@@ -127,7 +129,15 @@ export default function FolderAndFilesPage({
         <button onClick={onBack} className="text-blue-600 text-sm font-medium">
           <img src={back} alt="Back" className="w-12 h-12" />
         </button>
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex-1">{title}</h2>
+        {onEmptyRecycleBin && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEmptyRecycleBin(); }}
+            className="text-sm px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 font-medium transition"
+          >
+            Empty Recycle Bin
+          </button>
+        )}
       </div>
 
       {folders.length > 0 && (
