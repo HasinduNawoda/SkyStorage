@@ -34,6 +34,7 @@ type FileTable = {
   onToggleFavorite: () => void
   isDeleted?: boolean
   onToggleDelete: () => void
+  onPermanentDelete?: () => void
   onShare?: (payload: any) => void
   isShared?: boolean
   message?: string
@@ -86,6 +87,7 @@ export default function FilesTable({
   onToggleFavorite,
   isDeleted,
   onToggleDelete,
+  onPermanentDelete,
   onShare,
   message,
   isShared,
@@ -168,6 +170,7 @@ export default function FilesTable({
     isDeleted: !!isDeleted,
     onDownload: () => onDownload?.(),
     onDelete: onToggleDelete,
+    onPermanentDelete,
     onShare: () => setOpen(true),
     onToggleFavorite,
     onRename: () => onRequestRename?.(),

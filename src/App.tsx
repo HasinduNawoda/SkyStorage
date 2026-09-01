@@ -868,6 +868,27 @@ export default function App() {
     }
   };
 
+  const permanentDeleteFile = async (file: any) => {
+    if (!file.id) return;
+    try {
+      await deleteFile(file.id);
+      deleteFiles((prev) => prev.filter((f) => f.id !== file.id));
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const permanentDeleteFolder = async (folder: { id: string }) => {
+    try {
+      await deleteFolder(folder.id);
+      setDeletedFolderIds((prev) => prev.filter((id) => id !== folder.id));
+      setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const toggleDeleteFolder = async (folder: { id: string; name: string }) => {
     const isCurrentlyDeleted = deletedFolderIds.includes(folder.id);
     const newDeletedAt = isCurrentlyDeleted ? null : new Date().toISOString();
@@ -974,6 +995,18 @@ export default function App() {
     selectedFileIds.forEach((id) => {
       const f = files.find((fi) => fi.id === id);
       if (f) toggleDelete(f);
+    });
+    exitSelectMode();
+  };
+
+  const handleBulkPermanentDelete = () => {
+    selectedFolderIds.forEach((id) => {
+      const f = folders.find((fo) => fo.id === id);
+      if (f) permanentDeleteFolder(f);
+    });
+    selectedFileIds.forEach((id) => {
+      const f = files.find((fi) => fi.id === id);
+      if (f) permanentDeleteFile(f);
     });
     exitSelectMode();
   };
@@ -1624,6 +1657,8 @@ export default function App() {
                 onToggleDelete={toggleDelete}
                 deletedFolderIds={deletedFolderIds}
                 onToggleDeleteFolder={toggleDeleteFolder}
+                onPermanentDeleteFile={permanentDeleteFile}
+                onPermanentDeleteFolder={permanentDeleteFolder}
                 onDownloadFile={downloadFile}
                 onFolderDownload={downloadFolder}
                 onOpenFolder={openFolder}
@@ -1731,6 +1766,10 @@ export default function App() {
         onDelete={() => {
           setBulkMenu(null);
           handleBulkDelete();
+        }}
+        onPermanentDelete={() => {
+          setBulkMenu(null);
+          handleBulkPermanentDelete();
         }}
         onFavorite={() => {
           setBulkMenu(null);

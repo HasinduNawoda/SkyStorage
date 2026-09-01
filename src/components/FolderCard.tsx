@@ -21,6 +21,7 @@ type FolderCardProps = {
   isDeleted?: boolean;
   onToggleFavorite?: () => void;
   onToggleDelete?: () => void;
+  onPermanentDelete?: () => void;
   onDownload?: () => void;
   onShare?: () => void;
   onProperties?: () => void;
@@ -58,10 +59,11 @@ export default function FolderCard({
   onOpen,
   isFavorite = false,
   isDeleted = false,
-  onToggleFavorite,
-  onToggleDelete,
-  onDownload,
-  onShare,
+  onToggleFavorite = () => {},
+  onToggleDelete = () => {},
+  onPermanentDelete,
+  onDownload = () => {},
+  onShare = () => {},
   onProperties,
   onCut,
   onCopy,
@@ -125,6 +127,7 @@ export default function FolderCard({
     isDeleted,
     onDownload: () => onDownload?.(),
     onDelete: () => onToggleDelete?.(),
+    onPermanentDelete: () => onPermanentDelete?.(),
     onShare: () => onShare?.(),
     onToggleFavorite: () => onToggleFavorite?.(),
     onProperties: () => onProperties?.(),

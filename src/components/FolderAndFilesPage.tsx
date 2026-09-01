@@ -45,8 +45,10 @@ type Props = {
 
   deletedFiles: any[];
   onToggleDelete: (item: any) => void;
+  onPermanentDeleteFile?: (item: any) => void;
   deletedFolderIds?: string[];
   onToggleDeleteFolder?: (folder: FolderItem) => void;
+  onPermanentDeleteFolder?: (folder: FolderItem) => void;
 
   onShare?: (payload: any) => void;
   onShareFolder?: (folder: FolderItem) => void;
@@ -95,8 +97,10 @@ export default function FolderAndFilesPage({
   onToggleFavoriteFolder,
   deletedFiles,
   onToggleDelete,
+  onPermanentDeleteFile,
   deletedFolderIds = [],
   onToggleDeleteFolder,
+  onPermanentDeleteFolder,
   onShare,
   onShareFolder,
   onDownloadFile,
@@ -170,6 +174,7 @@ export default function FolderAndFilesPage({
                 isDeleted={deletedFolderIds.includes(f.id)}
                 onToggleFavorite={() => onToggleFavoriteFolder?.(f)}
                 onToggleDelete={() => onToggleDeleteFolder?.(f)}
+                onPermanentDelete={() => onPermanentDeleteFolder?.(f)}
                 onDownload={() => onFolderDownload?.(f)}
                 onShare={() => onShareFolder?.(f)}
                 onProperties={() => onFolderProperties?.(f)}
@@ -221,6 +226,7 @@ export default function FolderAndFilesPage({
                   onToggleFavorite={() => onToggleFavorite(file)}
                   isDeleted={deletedFiles.some((d) => d.name === file.name)}
                   onToggleDelete={() => onToggleDelete(file)}
+                  onPermanentDelete={() => onPermanentDeleteFile?.(file)}
                   onShare={onShare}
                   onDownload={() => onDownloadFile?.(file)}
                   isShared={isShared}

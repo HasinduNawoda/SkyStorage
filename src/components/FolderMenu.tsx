@@ -17,6 +17,7 @@ type FolderMenuProps = {
   onShare: () => void
   onToggleFavorite: () => void
   onProperties: () => void
+  onPermanentDelete?: () => void
   onRename?: () => void
   onCut?: () => void
   onCopy?: () => void
@@ -40,6 +41,7 @@ function FolderMenuContent({
   onShare,
   onToggleFavorite,
   onProperties,
+  onPermanentDelete,
   onRename,
   onCut,
   onCopy,
@@ -100,6 +102,13 @@ function FolderMenuContent({
         <img src={isDeleted ? deleted : trash} className="w-4 h-4 opacity-70" />
         <span>{isDeleted ? "Restore" : "Delete"}</span>
       </Menu.Item>
+
+      {isDeleted && onPermanentDelete && (
+        <Menu.Item value="permanent-delete" onClick={onPermanentDelete} gap="2" color="red.500">
+          <img src={trash} className="w-4 h-4 opacity-70" />
+          <span>Delete Permanently</span>
+        </Menu.Item>
+      )}
 
       {!isDeleted && (
         <Menu.Item value="share" onClick={onShare} gap="2">

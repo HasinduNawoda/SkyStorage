@@ -15,6 +15,7 @@ type FileMenuProps = {
   onDelete: () => void
   onShare: () => void
   onToggleFavorite: () => void
+  onPermanentDelete?: () => void
   onRename?: () => void
   onCut?: () => void
   onCopy?: () => void
@@ -36,10 +37,11 @@ function FileMenuContent({
   onDelete,
   onShare,
   onToggleFavorite,
+  onPermanentDelete,
   onRename,
   onCut,
   onCopy,
-}: Omit<FileMenuProps, "children" | "openAt" | "onClosePositioned">) {
+}: Omit<FileMenuProps, "children" | "openAt" | "onClosePositioned" | "onOpenChange">) {
   const clipboardItems = [
     { label: "Cut", value: "cut", icon: cut, onClick: onCut },
     { label: "Copy", value: "copy", icon: copy, onClick: onCopy },
@@ -85,6 +87,13 @@ function FileMenuContent({
         <img src={isDeleted ? deleted : trash} className="w-4 h-4 opacity-70" />
         <span>{isDeleted ? "Restore" : "Delete"}</span>
       </Menu.Item>
+
+      {isDeleted && onPermanentDelete && (
+        <Menu.Item value="permanent-delete" onClick={onPermanentDelete} gap="2" color="red.500">
+          <img src={trash} className="w-4 h-4 opacity-70" />
+          <span>Delete Permanently</span>
+        </Menu.Item>
+      )}
 
       {!isDeleted && (
         <Menu.Item value="share" onClick={onShare} gap="2">

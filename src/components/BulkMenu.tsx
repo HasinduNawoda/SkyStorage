@@ -19,6 +19,7 @@ type BulkMenuProps = {
   onCut: () => void
   onShare: () => void
   onRestore?: () => void
+  onPermanentDelete?: () => void
   onProperties?: () => void
 
   /** Controlled position-trigger mode — coordinates of the right-click. */
@@ -36,6 +37,7 @@ function BulkMenuContent({
   onCut,
   onShare,
   onRestore,
+  onPermanentDelete,
   onProperties,
 }: Omit<BulkMenuProps, "openAt" | "onClose">) {
   return (
@@ -56,6 +58,12 @@ function BulkMenuContent({
             <img src={deleted} className="w-4 h-4 opacity-70" />
             <span>Restore</span>
           </Menu.Item>
+          {onPermanentDelete && (
+            <Menu.Item value="permanent-delete" onClick={onPermanentDelete} gap="2" color="red.500">
+              <img src={trash} className="w-4 h-4 opacity-70" />
+              <span>Delete Permanently</span>
+            </Menu.Item>
+          )}
 
           <Menu.Item value="properties" onClick={onProperties} gap="2">
             <span className="w-4 h-4 shrink-0" />
