@@ -1,3 +1,6 @@
+const fs = require('fs');
+
+const content = 
 import { useState, useEffect } from "react";
 import back from "../assets/icons/back-button.png";
 
@@ -72,11 +75,11 @@ function Toast({ message, withUndo, onClose }: { message: string; withUndo?: boo
 export default function DeepClean({ onBack }: Props) {
   const [globalState, setGlobalState] = useState<"idle" | "scanning" | "scanned">("idle");
   const [categories, setCategories] = useState<Category[]>([
-    { id: "junk", icon: "📦", name: "Junk & Temp Files", severity: "high", countLabel: "? files", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
-    { id: "large", icon: "🐋", name: "Large Unused Files", severity: "high", countLabel: "? files", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
-    { id: "recycle", icon: "🗑️", name: "Old Recycle Bin", severity: "med", countLabel: "? items", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
-    { id: "empty", icon: "📁", name: "Empty Folders", severity: "low", countLabel: "? folders", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
-    { id: "stale", icon: "🔗", name: "Stale Shared Links", severity: "med", countLabel: "? links", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
+    { id: "junk", icon: "??", name: "Junk & Temp Files", severity: "high", countLabel: "? files", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
+    { id: "large", icon: "??", name: "Large Unused Files", severity: "high", countLabel: "? files", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
+    { id: "recycle", icon: "???", name: "Old Recycle Bin", severity: "med", countLabel: "? items", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
+    { id: "empty", icon: "??", name: "Empty Folders", severity: "low", countLabel: "? folders", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
+    { id: "stale", icon: "??", name: "Stale Shared Links", severity: "med", countLabel: "? links", resultText: "Not scanned yet", deleteLabel: "Clean", bytes: 0, count: 0, items: [] },
   ]);
 
   const [cardStates, setCardStates] = useState<Record<string, CardState>>({
@@ -104,7 +107,7 @@ export default function DeepClean({ onBack }: Props) {
     setGlobalState("scanning");
     
     try {
-      const res = await fetch(`${API_BASE}/deepclean/scan`, { credentials: "include" });
+      const res = await fetch(\\/deepclean/scan\, { credentials: "include" });
       const data = await res.json();
       
       setCategories(categories.map(c => {
@@ -114,9 +117,9 @@ export default function DeepClean({ onBack }: Props) {
           count: d.count,
           bytes: d.bytes,
           items: d.items,
-          countLabel: `${d.count} ${c.id === "empty" ? "folders" : c.id === "stale" ? "links" : "files"}`,
-          resultText: d.count === 0 ? "Nothing to clean" : `Found ${d.count} items`,
-          deleteLabel: d.bytes > 0 ? `Delete ${formatMB(Math.round(d.bytes / 1024 / 1024))}` : "Clean"
+          countLabel: \\ \\,
+          resultText: d.count === 0 ? "Nothing to clean" : \Found \ items\,
+          deleteLabel: d.bytes > 0 ? \Delete \\ : "Clean"
         };
       }));
 
@@ -135,7 +138,7 @@ export default function DeepClean({ onBack }: Props) {
     setCardStates((prev) => ({ ...prev, [cat.id]: "scanning" }));
     
     try {
-      const res = await fetch(`${API_BASE}/deepclean/clean`, {
+      const res = await fetch(\\/deepclean/clean\, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -145,16 +148,16 @@ export default function DeepClean({ onBack }: Props) {
       if (!res.ok) throw new Error("Clean failed");
 
       setCardStates((prev) => ({ ...prev, [cat.id]: "deleted" }));
-      addToast(`Cleaned ${cat.name}`);
+      addToast(\Cleaned \\);
       saveHistory({
         date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        label: `Cleaned ${cat.name}`,
+        label: \Cleaned \\,
         freed: formatMB(Math.round(cat.bytes / 1024 / 1024))
       });
     } catch (e) {
       console.error(e);
       setCardStates((prev) => ({ ...prev, [cat.id]: "scanned" }));
-      addToast(`Failed to clean ${cat.name}`);
+      addToast(\Failed to clean \\);
     }
   };
 
@@ -203,11 +206,7 @@ export default function DeepClean({ onBack }: Props) {
           <button
             onClick={handleScanAll}
             disabled={globalState === "scanning"}
-            className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all ${
-              globalState === "scanning"
-                ? "bg-blue-100 text-blue-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
-            }`}
+            className={\px-8 py-4 rounded-xl font-semibold text-lg transition-all \\}
           >
             {globalState === "scanning" ? "Scanning..." : globalState === "scanned" ? "Rescan" : "Start Scan"}
           </button>
@@ -221,20 +220,14 @@ export default function DeepClean({ onBack }: Props) {
             return (
               <div
                 key={cat.id}
-                className={`relative bg-white rounded-2xl border p-5 flex flex-col transition-all duration-300 ${
-                  state === "idle" || state === "scanning"
-                    ? "border-gray-100 shadow-sm opacity-60"
-                    : state === "deleted"
-                    ? "border-emerald-200 bg-emerald-50/30 opacity-70"
-                    : "border-gray-200 shadow-md hover:shadow-lg"
-                }`}
+                className={\elative bg-white rounded-2xl border p-5 flex flex-col transition-all duration-300 \\}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-2xl">
                     {cat.icon}
                   </div>
                   {state === "scanned" && cat.count > 0 && (
-                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${severityClasses(cat.severity)}`}>
+                    <div className={\px-3 py-1 rounded-full text-xs font-semibold \\}>
                       {severityLabel(cat.severity)}
                     </div>
                   )}
@@ -311,3 +304,5 @@ export default function DeepClean({ onBack }: Props) {
     </div>
   );
 }
+;
+fs.writeFileSync('src/components/DeepClean.tsx', content);
