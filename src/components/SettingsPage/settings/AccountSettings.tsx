@@ -220,12 +220,57 @@ export default function AccountSettings() {
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <button className="text-sm px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg transition-colors">
+            <label className="text-sm px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg transition-colors cursor-pointer">
               Upload
-            </button>
-            <button className="text-sm text-red-500 hover:text-red-600 transition-colors">
-              Remove
-            </button>
+              <input 
+                type="file" 
+                accept="image/jpeg, image/png, image/gif" 
+                className="hidden" 
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert("File is too large! Maximum size is 5MB.");
+                    return;
+                  }
+                  
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/profile-photo`, {
+                      method: "PUT",
+                      headers: { "x-mime-type": file.type },
+                      credentials: "include",
+                      body: file
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setProfile({ ...profile, profilePhoto: data.profilePhoto });
+                    }
+                  } catch (err) {
+                    console.error("Upload failed", err);
+                  }
+                }}
+              />
+            </label>
+            {profile.profilePhoto && (
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/profile-photo`, {
+                      method: "DELETE",
+                      credentials: "include"
+                    });
+                    if (res.ok) {
+                      setProfile({ ...profile, profilePhoto: null });
+                    }
+                  } catch (err) {
+                    console.error("Remove failed", err);
+                  }
+                }}
+                className="text-sm text-red-500 hover:text-red-600 transition-colors"
+              >
+                Remove
+              </button>
+            )}
           </div>
         </Row>
         <EditableField 
