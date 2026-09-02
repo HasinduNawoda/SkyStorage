@@ -96,7 +96,7 @@ function EditableField({
   );
 }
 
-export default function AccountSettings() {
+export default function AccountSettings({ onUserUpdate }: { onUserUpdate?: (user: any) => void }) {
   const [profile, setProfile] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; name: string; email: string | null; icon: string; connected: boolean; }[]>([
@@ -151,6 +151,7 @@ export default function AccountSettings() {
     if (!res.ok) throw new Error("Failed to update");
     const data = await res.json();
     setProfile(data);
+    onUserUpdate?.(data);
   };
 
   const revokeSession = async (id: string) => {
@@ -247,6 +248,7 @@ export default function AccountSettings() {
                     if (res.ok) {
                       const data = await res.json();
                       setProfile({ ...profile, profilePhoto: data.profilePhoto });
+                      onUserUpdate?.({ ...profile, profilePhoto: data.profilePhoto });
                     }
                   } catch (err) {
                     console.error("Upload failed", err);
@@ -264,6 +266,7 @@ export default function AccountSettings() {
                     });
                     if (res.ok) {
                       setProfile({ ...profile, profilePhoto: null });
+                      onUserUpdate?.({ ...profile, profilePhoto: null });
                     }
                   } catch (err) {
                     console.error("Remove failed", err);

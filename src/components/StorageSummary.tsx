@@ -11,6 +11,7 @@ import upload from "../assets/icons/upload.png"
 import NotificationBell from "./NotificationBell"
 
 interface RightSidebarProps {
+  user?: any;
   onUploadFile: () => void;
   totalUsedMB: number;
   categories: CategoryBreakdown[];
@@ -35,6 +36,7 @@ const USER_MENU_ITEMS = [
 ] as const;
 
 export default function RightSidebar({
+  user,
   onUploadFile,
   totalUsedMB,
   categories,
@@ -123,15 +125,23 @@ export default function RightSidebar({
           <NotificationBell />
         </span>
         <span className="text-3xl font-bold text-blue-500">Storage</span>
-        <div className="relative" ref={userMenuRef}>
-          <button
-            onClick={() => setUserMenuOpen((open) => !open)}
-            className="text-2xl cursor-pointer rounded-full transition-shadow hover:ring-2 hover:ring-blue-100"
-            aria-haspopup="menu"
-            aria-expanded={userMenuOpen}
-          >
-            <img src={userIcon} alt="user icon" className="w-12 h-12" />
-          </button>
+          <div className="relative" ref={userMenuRef}>
+            <button 
+              onClick={() => setUserMenuOpen((open) => !open)}
+              className="text-2xl cursor-pointer rounded-full transition-shadow hover:ring-2 hover:ring-blue-100 flex items-center justify-center overflow-hidden w-12 h-12"
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+            >
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="user profile" className="w-full h-full object-cover" />
+              ) : user?.name ? (
+                <div className="w-full h-full bg-blue-600 flex items-center justify-center font-bold text-white text-base">
+                  {user.name.substring(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <img src={userIcon} alt="user icon" className="w-full h-full" />
+              )}
+            </button>
 
           {userMenuOpen && (
             <div

@@ -54,28 +54,33 @@ type ClipboardState = {
 export default function App() {
   // ----- Auth -----
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     getSession().then((session) => {
       setIsAuthenticated(!!session);
+      setUser(session);
       setAuthChecked(true);
     });
   }, []);
 
   const handleLogin = async (payload: LoginPayload) => {
-    await login(payload.email, payload.password);
+    const session = await login(payload.email, payload.password);
     setIsAuthenticated(true);
+    setUser(session);
   };
 
   const handleSignUp = async (payload: SignUpPayload) => {
-    await signUp(payload.name, payload.email, payload.password);
+    const session = await signUp(payload.name, payload.email, payload.password);
     setIsAuthenticated(true);
+    setUser(session);
   };
 
   const handleSignOut = async () => {
     await logout().catch(console.error);
     setIsAuthenticated(false);
+    setUser(null);
     setFolderStack([]);
     setFolders([]);
     setFiles([]);
@@ -1679,6 +1684,7 @@ export default function App() {
                 onBack={() => setView("dashboard")}
                 externalTarget={settingsTarget}
                 onConsumeExternalTarget={() => setSettingsTarget(null)}
+                onUserUpdate={(u) => setUser({ ...user, ...u })}
               />
             )}
             {view === "deep_clean" && <DeepClean onBack={() => setView("dashboard")} />}
@@ -1688,10 +1694,11 @@ export default function App() {
 
       {view !== "settings" && (
   <div className="w-1/4 p-6 bg-white flex flex-col gap-6 overflow-y-auto scrollbar-hide flex-shrink-0">
-    <StorageSummary
-      onUploadFile={handleFileUploadClick}
-      totalUsedMB={totalMB}
-      categories={categories}
+      <StorageSummary
+        user={user}
+        onUploadFile={handleFileUploadClick}
+        totalUsedMB={totalMB}
+        categories={categories}
       capMB={100}
       onNavigateSettings={openSettings}
       onSignOut={handleSignOut}

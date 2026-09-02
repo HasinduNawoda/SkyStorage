@@ -10,7 +10,7 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-export type Session = { id: string; name: string; email: string };
+export type Session = { id: string; name: string; email: string; profilePhoto?: string | null };
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {

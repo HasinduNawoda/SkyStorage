@@ -20,6 +20,7 @@ type Props = {
   onBack: () => void;
   externalTarget?: ExternalTarget;
   onConsumeExternalTarget?: () => void;
+  onUserUpdate?: (user: any) => void;
 };
 
 const menuItems = [
@@ -109,7 +110,14 @@ export default function SettingsPage({ onBack, externalTarget, onConsumeExternal
       <main className="flex-1 h-screen bg-white flex flex-col overflow-hidden">
         <SearchBar onNavigate={handleNavigate} />
         <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6">
-          {settingsComponents[active]}
+          {active === "Account" && <AccountSettings onUserUpdate={props.onUserUpdate} />}
+          {active === "Privacy & Security" && <PrivacySecurity />}
+          {active === "Appearance" && <Appearance />}
+          {active === "Notifications" && <Notifications />}
+          {active === "Storage" && <Storage />}
+          {active === "Backup & Sync" && <BackupSync />}
+          {active === "System Performance" && <SystemPerformance />}
+          {active === "Reset Settings" && <ResetSettings />}
         </div>
       </main>
     </div>
