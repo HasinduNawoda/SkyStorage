@@ -22,6 +22,7 @@ import AuthPage, { type LoginPayload, type SignUpPayload } from "./components/Au
 import { formatDate } from "./utils/formatDate";
 import {
   getSession,
+  type Session,
   login,
   signUp,
   logout,

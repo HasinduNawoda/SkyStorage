@@ -45,7 +45,7 @@ const settingsComponents: Record<string, React.ReactNode> = {
   "Reset Settings":     <ResetSettings />,
 };
 
-export default function SettingsPage({ onBack, externalTarget, onConsumeExternalTarget }: Props) {
+export default function SettingsPage({ onBack, externalTarget, onConsumeExternalTarget, onUserUpdate }: Props) {
   const [active, setActive] = useState("Account");
 
   /**
@@ -110,7 +110,7 @@ export default function SettingsPage({ onBack, externalTarget, onConsumeExternal
       <main className="flex-1 h-screen bg-white flex flex-col overflow-hidden">
         <SearchBar onNavigate={handleNavigate} />
         <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6">
-          {active === "Account" && <AccountSettings onUserUpdate={props.onUserUpdate} />}
+          {active === "Account" && <AccountSettings onUserUpdate={onUserUpdate} />}
           {active === "Privacy & Security" && <PrivacySecurity />}
           {active === "Appearance" && <Appearance />}
           {active === "Notifications" && <Notifications />}
