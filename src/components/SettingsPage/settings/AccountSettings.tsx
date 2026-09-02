@@ -1,17 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toSectionId, toSettingId } from "../settingsUtils";
-
-const initialSessions = [
-  { id: 1, device: 'MacBook Pro 16"', browser: "Chrome 122", location: "Colombo, LK", time: "Active now", current: true, icon: "💻" },
-  { id: 2, device: "iPhone 15 Pro", browser: "Safari", location: "Colombo, LK", time: "2 hours ago", current: false, icon: "📱" },
-  { id: 3, device: "Windows PC", browser: "Edge 121", location: "Kandy, LK", time: "3 days ago", current: false, icon: "🖥️" },
-];
-
-const initialConnected = [
-  { id: "google", name: "Google", email: "hasindunawoda78@gmail.com", icon: "G", connected: true },
-  { id: "apple", name: "Apple", email: null, icon: "⌘", connected: false },
-  { id: "github", name: "GitHub", email: null, icon: "⌥", connected: false },
-];
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -43,9 +31,42 @@ function Row({
   );
 }
 
-function EditableField({ label, value, type = "text" }: { label: string; value: string; type?: string }) {
+function EditableField({ 
+  label, 
+  value, 
+  type = "text",
+  onSave
+}: { 
+  label: string; 
+  value: string; 
+  type?: string;
+  onSave: (val: string) => Promise<void> 
+}) {
   const [val, setVal] = useState(value);
   const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Sync prop value to local state if it changes outside
+  useEffect(() => { setVal(value); }, [value]);
+
+  const handleSave = async () => {
+    if (!editing) {
+      setEditing(true);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await onSave(val);
+      setEditing(false);
+    } catch (e) {
+      console.error(e);
+      // maybe revert value?
+      setVal(value);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Row id={toSettingId(label)}>
@@ -57,32 +78,123 @@ function EditableField({ label, value, type = "text" }: { label: string; value: 
             type={type}
             value={val}
             onChange={(e) => setVal(e.target.value)}
-            className="border border-blue-400 text-gray-800 text-sm rounded-lg px-3 py-1.5 outline-none w-64 focus:ring-2 focus:ring-blue-100"
+            disabled={loading}
+            className="border border-blue-400 text-gray-800 text-sm rounded-lg px-3 py-1.5 outline-none w-64 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
           />
         ) : (
-          <div className="text-sm text-gray-800">{val}</div>
+          <div className="text-sm text-gray-800">{val || <span className="italic text-gray-400">Not set</span>}</div>
         )}
       </div>
       <button
-        onClick={() => setEditing(!editing)}
-        className="text-sm text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors"
+        onClick={handleSave}
+        disabled={loading}
+        className="text-sm text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors disabled:opacity-50"
       >
-        {editing ? "Save" : "Edit"}
+        {editing ? (loading ? "Saving..." : "Save") : "Edit"}
       </button>
     </Row>
   );
 }
 
 export default function AccountSettings() {
-  const [sessions, setSessions] = useState(initialSessions);
-  const [accounts, setAccounts] = useState(initialConnected);
+  const [profile, setProfile] = useState<any>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; name: string; email: string | null; icon: string; connected: boolean; }[]>([
+    { id: "google", name: "Google", email: null, icon: "G", connected: false },
+    { id: "github", name: "GitHub", email: null, icon: "GH", connected: false },
+  ]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [exportRequested, setExportRequested] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const revokeSession = (id: number) => setSessions((s) => s.filter((s) => s.id !== id));
-  const revokeAll = () => setSessions((s) => s.filter((s) => s.current));
-  const toggleAccount = (id: string) =>
-    setAccounts((a) => a.map((a) => (a.id === id ? { ...a, connected: !a.connected } : a)));
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/me`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data);
+        
+        // update accounts state
+        setAccounts([
+          { id: "google", name: "Google", email: data.googleId ? "Connected" : null, icon: "G", connected: !!data.googleId },
+          { id: "github", name: "GitHub", email: data.githubId ? "Connected" : null, icon: "GH", connected: !!data.githubId },
+        ]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchSessions = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/sessions`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    Promise.all([fetchProfile(), fetchSessions()]).finally(() => setLoading(false));
+  }, []);
+
+  const updateProfile = async (field: string, value: string) => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ [field]: value })
+    });
+    if (!res.ok) throw new Error("Failed to update");
+    const data = await res.json();
+    setProfile(data);
+  };
+
+  const revokeSession = async (id: string) => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/sessions/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (res.ok) {
+      setSessions((s) => s.filter((session) => session.id !== id));
+    }
+  };
+
+  const revokeAll = async () => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/sessions`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (res.ok) {
+      setSessions((s) => s.filter((session) => session.current));
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/me`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (res.ok) {
+        window.location.href = "/auth";
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // We leave toggleAccount as a placeholder for OAuth flow later
+  const toggleAccount = (_id: string) => {
+    alert("OAuth integration will be implemented in the next phase!");
+  };
+
+  if (loading || !profile) return <div className="p-8 text-gray-500">Loading profile...</div>;
+
+  const initials = (profile.name || "U").substring(0, 2).toUpperCase();
 
   return (
     <div className="max-w-[90%]">
@@ -95,12 +207,16 @@ export default function AccountSettings() {
       <SectionCard title="Profile">
         <Row id={toSettingId("Profile Photo")}>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base shrink-0">
-              HN
-            </div>
+            {profile.profilePhoto ? (
+              <img src={profile.profilePhoto} className="w-12 h-12 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base shrink-0">
+                {initials}
+              </div>
+            )}
             <div>
               <div className="text-sm font-medium text-gray-700">Profile Photo</div>
-              <div className="text-xs text-gray-400 mt-0.5">JPG, PNG or GIF · Max 5MB</div>
+              <div className="text-xs text-gray-400 mt-0.5">JPG, PNG or GIF • Max 5MB</div>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
@@ -112,18 +228,28 @@ export default function AccountSettings() {
             </button>
           </div>
         </Row>
-        <EditableField label="Full Name" value="Hasindu Nawoda" />
-        <EditableField label="Display Name" value="hasindunawoda" />
-        <EditableField label="Email Address" value="hasindunawoda78@gmail.com" type="email" />
-        <Row id={toSettingId("Phone Number")} last>
-          <div>
-            <div className="text-xs text-gray-400 mb-0.5">Phone Number</div>
-            <div className="text-sm text-gray-400 italic">Not set</div>
-          </div>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors">
-            Add
-          </button>
-        </Row>
+        <EditableField 
+          label="Full Name" 
+          value={profile.name || ""} 
+          onSave={(val) => updateProfile("name", val)} 
+        />
+        <EditableField 
+          label="Display Name" 
+          value={profile.displayName || ""} 
+          onSave={(val) => updateProfile("displayName", val)} 
+        />
+        <EditableField 
+          label="Email Address" 
+          value={profile.email || ""} 
+          type="email" 
+          onSave={(val) => updateProfile("email", val)} 
+        />
+        <EditableField 
+          label="Phone Number" 
+          value={profile.phoneNumber || ""} 
+          type="tel" 
+          onSave={(val) => updateProfile("phoneNumber", val)} 
+        />
       </SectionCard>
 
       {/* Connected Accounts */}
@@ -162,7 +288,7 @@ export default function AccountSettings() {
             last={i === sessions.length - 1 && sessions.filter((s) => !s.current).length === 0}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="text-xl shrink-0">{s.icon}</div>
+              <div className="text-xl shrink-0">💻</div>
               <div className="min-w-0">
                 <div className="text-sm text-gray-700 flex items-center gap-2">
                   {s.device}
@@ -173,7 +299,7 @@ export default function AccountSettings() {
                   )}
                 </div>
                 <div className="text-xs text-gray-400 truncate">
-                  {s.browser} · {s.location} · {s.time}
+                  {s.browser} • {s.ipAddress} • {new Date(s.time).toLocaleString()}
                 </div>
               </div>
             </div>
@@ -219,7 +345,7 @@ export default function AccountSettings() {
                   : "border-amber-300 text-amber-600 hover:bg-amber-50"
               }`}
             >
-              {exportRequested ? "Requested ✓" : "Request Export"}
+              {exportRequested ? "Requested 📦" : "Request Export"}
             </button>
           </div>
           <div id={toSettingId("Delete Account")} className="px-5 py-4 flex items-center justify-between gap-4">
@@ -244,7 +370,10 @@ export default function AccountSettings() {
                 >
                   Cancel
                 </button>
-                <button className="text-sm px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors">
+                <button 
+                  onClick={deleteAccount}
+                  className="text-sm px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors"
+                >
                   Confirm Delete
                 </button>
               </div>
