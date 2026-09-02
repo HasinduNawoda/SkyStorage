@@ -237,7 +237,10 @@ export default function AccountSettings() {
                   try {
                     const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/users/profile-photo`, {
                       method: "PUT",
-                      headers: { "x-mime-type": file.type },
+                      headers: { 
+                        "Content-Type": "application/octet-stream",
+                        "x-mime-type": file.type 
+                      },
                       credentials: "include",
                       body: file
                     });
