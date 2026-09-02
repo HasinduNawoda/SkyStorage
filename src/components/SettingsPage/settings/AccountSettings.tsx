@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { toSectionId, toSettingId } from "../settingsUtils";
+import { getAllFiles, getAllFolders } from "../../../utils/api";
+import { downloadFilesAsZip } from "../../../utils/downloadUtils";
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -106,6 +108,46 @@ export default function AccountSettings({ onUserUpdate }: { onUserUpdate?: (user
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [exportRequested, setExportRequested] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const handleExport = async () => {
+    setExportRequested(true);
+    try {
+      const folders = await getAllFolders();
+      const files = await getAllFiles();
+
+      const folderPaths: Record<string, string> = {};
+      const getPath = (folderId: string | null): string => {
+        if (!folderId) return "";
+        if (folderPaths[folderId]) return folderPaths[folderId];
+        const folder = folders.find(f => f.id === folderId);
+        if (!folder) return "";
+        const path = getPath(folder.parentId) + folder.name + "/";
+        folderPaths[folderId] = path;
+        return path;
+      };
+
+      const entries = files.map(file => ({
+        file: { ...file, blob: undefined },
+        relativePath: getPath(file.folderId)
+      }));
+
+      entries.push({
+        file: {
+          id: undefined,
+          name: "account_data.json",
+          blob: new Blob([JSON.stringify({ profile, accounts, sessions }, null, 2)], { type: "application/json" })
+        },
+        relativePath: ""
+      });
+
+      await downloadFilesAsZip(entries, "SkyStorage_Export");
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export data.");
+    } finally {
+      setExportRequested(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -387,17 +429,22 @@ export default function AccountSettings({ onUserUpdate }: { onUserUpdate?: (user
                 Download all your files and settings as a ZIP archive
               </div>
             </div>
-            <button
-              onClick={() => setExportRequested(true)}
-              disabled={exportRequested}
-              className={`text-sm px-3 py-1.5 rounded-lg border font-medium shrink-0 transition-all ${
-                exportRequested
-                  ? "border-gray-200 text-gray-400 cursor-default"
-                  : "border-amber-300 text-amber-600 hover:bg-amber-50"
-              }`}
-            >
-              {exportRequested ? "Requested 📦" : "Request Export"}
-            </button>
+              <button
+                onClick={handleExport}
+                disabled={exportRequested}
+                className={`text-sm px-3 py-1.5 rounded-lg border font-medium shrink-0 transition-all ${
+                  exportRequested
+                    ? "border-gray-200 text-gray-400 cursor-default bg-gray-50 flex items-center gap-2"
+                    : "border-amber-300 text-amber-600 hover:bg-amber-50"
+                }`}
+              >
+                {exportRequested ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    Exporting...
+                  </>
+                ) : "Request Export"}
+              </button>
           </div>
           <div id={toSettingId("Delete Account")} className="px-5 py-4 flex items-center justify-between gap-4">
             <div>
