@@ -230,9 +230,26 @@ export default function AccountSettings({ onUserUpdate }: { onUserUpdate?: (user
     }
   };
 
-  // We leave toggleAccount as a placeholder for OAuth flow later
-  const toggleAccount = (_id: string) => {
-    alert("OAuth integration will be implemented in the next phase!");
+  const toggleAccount = async (id: string) => {
+    const account = accounts.find((a) => a.id === id);
+    if (!account) return;
+
+    if (account.connected) {
+      if (!confirm(`Are you sure you want to disconnect ${account.name}?`)) return;
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/oauth/${id}/disconnect`, {
+          method: "DELETE",
+          credentials: "include"
+        });
+        if (res.ok) {
+          fetchProfile(); // reload accounts state
+        }
+      } catch (err) {
+        console.error("Failed to disconnect", err);
+      }
+    } else {
+      window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/oauth/${id}/connect`;
+    }
   };
 
   if (loading || !profile) return <div className="p-8 text-gray-500">Loading profile...</div>;
